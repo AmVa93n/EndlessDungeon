@@ -1,0 +1,29 @@
+.scene {
+    display: none;
+    width: 50%;
+    height: 500px;
+    margin: auto;
+    border-style: solid;
+} 
+
+#start {
+    display: block;
+    background-color: red;
+}
+
+#main {
+    background-color: yellow;
+}
+
+#gameover {
+    background-color: green;
+}
+
+button {
+    width: 33%;
+    margin: auto;
+    margin-top: 40%;
+    display: block;
+    border-style: solid;
+    text-align: center;
+}
