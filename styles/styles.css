@@ -1,22 +1,33 @@
 .scene {
     display: none;
-    width: 50%;
-    height: 500px;
+    width: 760px;
+    height: 670px;
     margin: auto;
     border-style: solid;
+    border-width: 1px;
 } 
 
 #start {
     display: block;
-    background-color: red;
 }
 
 #main {
-    background-color: yellow;
+    position: relative;
+    background-color: gray;
 }
 
-#gameover {
-    background-color: green;
+#gamespace {
+    background-color: brown;
+    width: 660px;
+    height: 570px;
+    border-style: solid;
+    border-width: 1px;
+    margin: 50px 50px;
+}
+
+#stats {
+    position: absolute;
+    left: -80px
 }
 
 button {
