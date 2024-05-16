@@ -1,7 +1,6 @@
 var mainScene, startScene, gameoverScene, gameSpace
 var $scene = null // reference to current scene displayed on screen
-var $game = null // reference to current GameSession instance
-var $player = null // reference to current Player instance
+var $game, $player, $entrance, $exit = null // reference to current instances of each class in the game session
 
 window.onload = function() {
     mainScene = document.getElementById('main')
@@ -20,6 +19,7 @@ function setupListeners() {
         newGame()
     )
     window.addEventListener("keydown", () => {
+        event.preventDefault()
         let direction
         switch(event.key) {
             case "ArrowUp": direction = 8; break
@@ -27,6 +27,7 @@ function setupListeners() {
             case "ArrowLeft": direction = 4; break
             case "ArrowRight": direction = 6
         }
+        if ($player.isExiting || $player.isEntering) return
         $player.move(direction)
     })
 }
@@ -41,13 +42,13 @@ function switchScene(newScene) {
 function newGame() {
     switchScene(mainScene)
     $game = new GameSession()
-    $player = new Player()
+    $game.createLevel(1)
     $game.interval = setInterval(gameTick, 17)
 }
 
-function gameEnd() {
+function endGame() {
     clearInterval($game.interval)
-    for (let img of [...mainScene.querySelectorAll('img')]) img.remove()
+    $game.removeAll()
     switchScene(gameoverScene)
     document.getElementById('final-score').textContent = $game.score
 }
@@ -56,6 +57,8 @@ function gameTick() {
     $game.update()
     for (let enemy of $game.enemies) enemy.update()
     $player.update()
+    $exit.update()
+    $entrance.update()
 }
 
 function reverseDir(direction) {
@@ -67,69 +70,105 @@ function reverseDir(direction) {
     }
 }
 
+function randomize(min, max) {
+    return (Math.floor(Math.random() * (max - min + 1))) + min
+}
+
 class GameSession {
     constructor() {
         this.score = 0
         this.level = 0
-        this.enemyCountInterval = 1
-        this.entrance = new Entrance()
-        this.exit = new Exit()
-        this.createLevel(1)
+        this.isLevelClear = false
+        this.enemyCountInterval = 3
+        this.obstacles = []
+        this.enemies = []
     }
     createLevel(levelNumber) {
+        if (levelNumber == 1) {
+            $entrance = new Entrance()
+            $exit = new Exit()
+            $player = new Player()
+        }
         if (levelNumber > 1) {
             this.scrollMap()
             this.setNextExit()
+            for (let obstacle of this.obstacles) obstacle.element.remove()
+            for (let enemy of this.enemies) enemy.element.remove()
         }
+        this.createObstacles()
         this.createEnemies(levelNumber)
         this.level = levelNumber
         document.getElementById('lvl').textContent = this.level
     }
     scrollMap() {
-        this.entrance.direction = reverseDir(this.exit.direction)
-        var newEntranceX = this.entrance.getX(this.exit)
-        var newEntranceY = this.entrance.getY(this.exit)
-        this.entrance.locate(newEntranceX, newEntranceY)
-        $player.locate(this.entrance.x, this.entrance.y)
+        $entrance.direction = reverseDir($exit.direction)
+        $entrance.locate($entrance.getX($exit), $entrance.getY($exit))
+        $entrance.animFrame = 0
+        $entrance.isClosing = true
+        $player.locate($entrance.x+5, $entrance.y)
+        $player.isEntering = true
     }
     setNextExit() {
-        this.exit.direction = this.exit.getDirection(this.entrance.direction)
-        var newExitX = this.exit.getX(this.exit.direction)
-        var newExitY = this.exit.getY(this.exit.direction)
-        this.exit.locate(newExitX, newExitY)
+        $exit.direction = $exit.getDirection($entrance.direction)
+        var newExitX = $exit.getX($exit.direction)
+        var newExitY = $exit.getY($exit.direction)
+        $exit.locate(newExitX, newExitY)
+        $exit.animFrame = 0
     }
     createEnemies(levelNumber) {
         var enemiesCount = Math.floor(levelNumber / this.enemyCountInterval) // 1 enemy added every X levels
         if (enemiesCount == 0) enemiesCount = 1 // default to 1
-        this.enemies = []
-        for (let i = 0; i < enemiesCount;) {
+        for (let i = 0; i < enemiesCount; i++) {
             var newEnemy = new Enemy()
-            //if (this.enemies.some(e => newEnemy.isCollided(e))) {
-            //    newEnemy.element.remove()
-            //    continue
-            //}
+            if (!newEnemy.canSpawn()) {
+                newEnemy.element.remove()
+                continue
+            } 
             this.enemies.push(newEnemy)
-            i++
+        }
+    }
+    createObstacles() {
+        var obstacleCount = randomize(3,10)
+        for (let i = 0; i < obstacleCount; i++) {
+            var newObstacle = new Obstacle()
+            if (!newObstacle.canSpawn()) {
+                newObstacle.element.remove()
+                continue
+            } 
+            this.obstacles.push(newObstacle)
         }
     }
     update() {
         document.getElementById('enemies').textContent = this.enemies.length
-        document.getElementById('hp').textContent = $player.health
-        document.getElementById('score').textContent = this.score
-        if (this.isLevelCleared()) {
-            this.score += this.enemies.length * this.level
-            for (let enemy of this.enemies) enemy.element.remove()
-            this.createLevel(this.level + 1)
-        }
     }
-    isLevelCleared() {
-        return this.exit.isCollided($player)
+    nextLevel() {
+        this.updateScore()
+        this.createLevel(this.level + 1)
+    }
+    getAllObjects() {
+        var objects = this.enemies.concat(this.obstacles)
+        objects.push($entrance)
+        objects.push($exit)
+        objects.push($player)
+        return objects
+    }
+    removeAll() {
+        for (let obj of this.getAllObjects()) obj.remove()
+    }
+    updateScore() {
+        this.score += this.enemies.length * this.level
+        document.getElementById('score').textContent = this.score
     }
 }
 
 class GameObject {
-    constructor() {
-        this.element = document.createElement("img")
+    constructor(x, y, width, height, tag) {
+        this.x = x
+        this.y = y
+        this.width = width
+        this.height = height
+        if (!tag) tag = 'div'
+        this.element = document.createElement(tag)
         this.element.style.position = 'absolute'
         mainScene.appendChild(this.element)
     }
@@ -145,34 +184,63 @@ class GameObject {
         this.x = x
         this.y = y
         this.updatePosition()
+        this.updateImage()
     }
     update() {
         this.updatePosition()
+        this.updateImage()
     }
     updatePosition() {
         this.element.style.left = `${this.x}px`;
         this.element.style.top = `${this.y}px`;
+    }
+    updateStep() {
+        this.stepCount --
+        if (this.stepCount == 0) {
+            this.stepFrame++
+            if (this.stepFrame == 4) this.stepFrame = 0
+            this.stepCount = 5
+        }
+    }
+    updateAnimation() {
+        this.animCount --
+        if (this.animCount == 0) {
+            this.animFrame++
+            this.animCount = 10
+        }
+    }
+    isCollided(obj) {
+        return this.y < obj.y + obj.height && this.y + this.height > obj.y 
+            && this.x < obj.x + obj.width && this.x + this.width > obj.x
     }
     wouldCollide(direction, obj) {
         var step = direction == 8 || direction == 4 ? - this.speed : this.speed
         return this.y + step < obj.y + obj.height &&
             this.y + this.height + step > obj.y &&
             this.x + step < obj.x + obj.width &&
-            this.x + this.width  + step > obj.x
+            this.x + this.width + step > obj.x
     }
-    isCollided(obj) {
-        var thisRect = this.element.getBoundingClientRect();
-        var objRect = obj.element.getBoundingClientRect();
-        return thisRect.left < objRect.right && thisRect.right > objRect.left &&
-        thisRect.top < objRect.bottom && thisRect.bottom > objRect.top
-    }
-    wouldCollideWithFrame(direction) {
+    wouldReachBorder(direction) {
         switch(direction) {
             case 8: return this.y - this.speed <= 50 
             case 2: return this.y + this.speed >= gameSpace.clientHeight 
             case 4: return this.x - this.speed <= 50
             case 6: return this.x + this.speed >= gameSpace.clientWidth 
         }
+    }
+    spawnX() {
+        var max = gameSpace.clientWidth - this.width
+        var min = this.width
+        return randomize(min, max)
+    }
+    spawnY() {
+        var max = gameSpace.clientHeight - this.height
+        var min = this.height
+        return randomize(min, max)
+    }
+    canSpawn() {
+        var objects = $game.getAllObjects()
+        return !objects.some(obj => this.isCollided(obj))
     }
     remove() {
         this.element.remove()
@@ -181,59 +249,132 @@ class GameObject {
 
 class Player extends GameObject {
     constructor() {
-        super()
-        this.width = 50
-        this.height = 50
+        super($entrance.x + 5, $entrance.y, 48, 48)
+        this.element.style.backgroundImage = "url('./assets/player.png')"
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
+        this.direction = 8
         this.speed = 10
-        this.x = $game.entrance.x
-        this.y = $game.entrance.y
-        this.element.src = './assets/player.png'
+        this.stepCount = 5
+        this.stepFrame = 0
         this.health = 5
+        this.isExiting = false
+        this.isEntering = false
+        this.transitionCount = 40
     }
     move(direction) {
-        if (this.isCollided($game.entrance) && direction != $game.entrance.direction) return
-        if (this.wouldCollideWithFrame(direction) && !this.wouldCollide(direction, $game.exit)) return
+        this.direction = direction
+        this.updateStep()
+        if (!this.canMove(direction)) return
         super.move(direction)
+    }
+    canMove(direction) {
+        if (this.isExiting) return true
+        if ($game.obstacles.some(obs => this.wouldCollide(direction, obs))) return false
+        if (this.isCollided($entrance) && direction != $entrance.direction) return false
+        if (this.wouldReachBorder(direction)) {
+            if (this.wouldCollide(direction, $exit)) {
+                if (this.isCollided($exit)) return false
+                return true
+            } 
+            return false
+        }
+        return true
     }
     loseHealth(damage) {
         this.health -= damage
-        if (this.health <= 0) gameEnd()
+        document.getElementById('hp').textContent = $player.health
+        if (this.health <= 0) endGame()
+    }
+    update() {
+        super.update()
+        if (this.isExiting) this.updateExit()
+        if (this.isEntering) this.updateEnter()
+    }
+    updateImage() {
+        var step
+        switch(this.stepFrame) {
+            case 0: step = 0; break
+            case 3:
+            case 1: step = 96; break
+            case 2: step = 48; break
+        }
+        var dir
+        switch(this.direction) {
+            case 2: dir = 0; break
+            case 4: dir = 144; break
+            case 6: dir = 96; break
+            case 8: dir = 48; break
+        }
+        this.element.style.backgroundPosition = `${step}px ${dir}px`
+    }
+    updateExit() {
+        this.transitionCount --
+        $exit.fadeoutOpacity += 0.025
+        $exit.fadeout.style.opacity = `${$exit.fadeoutOpacity}`
+        this.move(reverseDir($exit.direction))
+        if (this.transitionCount == 0) {
+            this.isExiting = false
+            this.transitionCount = 40
+            $game.nextLevel()
+        }
+    }
+    updateEnter() {
+        this.transitionCount --
+        $exit.fadeoutOpacity -= 0.025
+        $exit.fadeout.style.opacity = `${$exit.fadeoutOpacity}`
+        this.move($entrance.direction)
+        if (this.transitionCount == 0) {
+            this.isEntering = false
+            this.transitionCount = 40
+            $exit.fadeout.remove()
+            $game.isPaused = false
+            this.speed = 10
+        }
     }
 }
 
 class Enemy extends GameObject {
     constructor() {
-        super()
-        this.width = 50
-        this.height = 50
-        this.x = this.startX()
-        this.y = this.startY()
-        this.element.src = './assets/enemy.png'
+        super(0, 0, 48, 48)
+        this.x = this.spawnX()
+        this.y = this.spawnY()
+        this.element.style.backgroundImage = "url('./assets/enemy.png')"
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
         this.damage = 1
         this.speed = 1
-        this.direction = (Math.floor(Math.random() * 4) + 1) * 2
-        this.dirChangeInterval = (Math.floor(Math.random() * 3) + 1) * 60 // 1-3 sec
+        this.direction = randomize(1, 4) * 2 
+        this.stepCount = 5
+        this.stepFrame = 0
+        this.dirChangeInterval = randomize(1, 3) * 60 // 1-3 sec
         this.framesTilDirChange = this.dirChangeInterval
     }
     move(direction) {
-        var objects = [...$game.enemies]
+        this.direction = direction
+        this.updateStep()
+        if (!this.canMove(direction)) return
+        super.move(direction)
+    }
+    canMove(direction) {
+        var objects = $game.enemies.concat($game.obstacles)
         var ownIndex = objects.indexOf(this)
         objects.splice(ownIndex, 1)
-        objects.push($game.entrance)
-        objects.push($game.exit)
+        objects.push($entrance)
+        objects.push($exit)
         if (objects.some(obj => this.wouldCollide(direction, obj))) {
             this.changeDirection()
-            return
+            return false
         }
-        if (this.wouldCollideWithFrame(direction)) {
+        if (this.wouldReachBorder(direction)) {
             this.changeDirection()
-            return
+            return false
         }
-        super.move(direction)
+        return true
     }
     changeDirection() {
         this.framesTilDirChange = this.dirChangeInterval
-        this.direction = (Math.floor(Math.random() * 4) + 1) * 2
+        this.direction = randomize(1, 4) * 2
     }
     update() {
         this.updateDirection()
@@ -255,24 +396,35 @@ class Enemy extends GameObject {
         var index = $game.enemies.indexOf(this)
         $game.enemies.splice(index, 1)
     }
-    startX() {
-        return (Math.floor(Math.random() * (gameSpace.clientWidth - this.width))) + this.width
-    }
-    startY() {
-        return (Math.floor(Math.random() * (gameSpace.clientHeight - this.height))) + this.height
+    updateImage() {
+        var step
+        switch(this.stepFrame) {
+            case 0: step = 0; break
+            case 3:
+            case 1: step = 96; break
+            case 2: step = 48; break
+        }
+        var dir
+        switch(this.direction) {
+            case 2: dir = 0; break
+            case 4: dir = 144; break
+            case 6: dir = 96; break
+            case 8: dir = 48; break
+        }
+        this.element.style.backgroundPosition = `${step}px ${dir}px`
     }
 }
 
 class Entrance extends GameObject {
     constructor() {
-        super()
-        this.width = 50
-        this.height = 50
+        super(gameSpace.clientWidth / 2 + 25, gameSpace.clientHeight + 40, 60, 60)
         this.direction = 8 // initial entrance on the bottom center
-        this.x = gameSpace.clientWidth / 2 + 25
-        this.y = gameSpace.clientHeight + 52
-        this.element.src = './assets/entrance.png'
-        this.updatePosition()
+        this.element.style.backgroundImage = "url('./assets/entrance.png')"
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
+        this.isClosing = false
+        this.animFrame = 0
+        this.animCount = 10
     }
     getX(exit) {
         var direction = reverseDir(exit.direction)
@@ -292,18 +444,48 @@ class Entrance extends GameObject {
             case 4: return exit.y
         }
     }
+    update() {
+        super.update()
+        this.updateAnimation()
+    }
+    updateAnimation() {
+        if (!this.isClosing) return
+        super.updateAnimation()
+        if (this.animFrame == 4) {
+            this.isClosing = false
+        }
+    }
+    updateImage() {
+        var frame
+        switch(this.animFrame) {
+            case 0: frame = 60; break
+            case 1: frame = 120; break
+            case 2: frame = 180; break
+            case 3: frame = 0; break
+        }
+        var dir
+        switch(this.direction) {
+            case 2: dir = 0; break
+            case 4: dir = 180; break
+            case 6: dir = 120; break
+            case 8: dir = 60; break
+        }
+        this.element.style.backgroundPosition = `${frame}px ${dir}px`
+    }
 }
 
 class Exit extends GameObject {
     constructor() {
-        super()
-        this.width = 50
-        this.height = 50
-        this.element.src = './assets/exit.png'
+        super(0, 0, 60, 60)
         this.direction = this.getDirection(8)
         this.x = this.getX(this.direction)
         this.y = this.getY(this.direction)
-        this.updatePosition()
+        this.element.style.backgroundImage = "url('./assets/exit.png')"
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
+        this.isOpening = false
+        this.animFrame = 0
+        this.animCount = 10
     }
     getDirection(entranceDir) {
         var options
@@ -323,7 +505,7 @@ class Exit extends GameObject {
             case 2: 
                 var max = mainScene.clientWidth - this.width*3
                 var min = this.width*2
-                return Math.floor(Math.random() * (max - min + 1)) + min
+                return randomize(min, max)
         }
     }
     getY(direction) {
@@ -334,7 +516,88 @@ class Exit extends GameObject {
             case 4: 
                 var max = mainScene.clientHeight - this.height*3
                 var min = this.height*2
-                return Math.floor(Math.random() * (max - min + 1)) + min
+                return randomize(min, max)
         }
+    }
+    update() {
+        if (this.canOpen()) this.open()
+        super.update()
+        this.updateAnimation()
+    }
+    canOpen() {
+        if (!$player) return
+        if (!this.isCollided($player)) return false
+        switch(this.direction) {
+            case 8: case 2: 
+                if ($player.x < this.x || $player.x + $player.width > this.x + this.width) return false; break
+            case 6: case 4: 
+                if ($player.y < this.y || $player.y + $player.height > this.y + this.height) return false
+        }
+        if ($player.direction != reverseDir(this.direction)) return false
+        return true
+    }
+    updateAnimation() {
+        if (!this.isOpening) return
+        super.updateAnimation()
+        if (this.animFrame == 4) {
+            this.isOpening = false
+        }
+    }
+    updateImage() {
+        var frame
+        switch(this.animFrame) {
+            case 0: frame = 0; break
+            case 1: frame = 180; break
+            case 2: frame = 120; break
+            case 3: frame = 60; break
+        }
+        var dir
+        switch(this.direction) {
+            case 2: dir = 0; break
+            case 4: dir = 180; break
+            case 6: dir = 120; break
+            case 8: dir = 60; break
+        }
+        this.element.style.backgroundPosition = `${frame}px ${dir}px`
+    }
+    open() {
+        if ($game.isPaused) return
+        this.isOpening = true
+        $player.isExiting = true
+        this.startTransition()
+        $game.isPaused = true
+    }
+    startTransition() {
+        $player.speed = 1
+        this.fadeout = document.createElement('div')
+        this.fadeoutOpacity = 0
+        mainScene.appendChild(this.fadeout)
+        this.fadeout.style.backgroundColor = 'black'
+        this.fadeout.style.opacity = 0
+        this.fadeout.style.width = '760px'
+        this.fadeout.style.height = '670px'
+        this.fadeout.style.position = 'absolute'
+        this.fadeout.style.top = 0
+        this.fadeout.style.left = 0
+    }
+}
+
+class Obstacle extends GameObject {
+    constructor() {
+        super(0, 0, 48, 48)
+        this.x = this.spawnX()
+        this.y = this.spawnY()
+        this.element.style.overflow = 'visible'
+        this.element.style.backgroundImage = "url('./assets/obstacle.png')"
+        this.element.style.backgroundSize = "48px 96px"
+        this.element.style.backgroundPosition = "0px 48px"
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
+        this.updatePosition()
+    }
+    remove() {
+        super.remove()
+        var index = $game.obstacles.indexOf(this)
+        $game.obstacles.splice(index, 1)
     }
 }

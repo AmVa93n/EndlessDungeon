@@ -22,9 +22,25 @@
             <p>Health: <span id="hp"></span></p>
             <p>Score: <span id="score"></span></p>
         </div>
-        <div id="gamespace">
-
-        </div>
+        <div id="gamespace"></div>
+        <div id="border-left"></div>
+        <div id="border-right"></div>
+        <svg id="border-top">
+            <defs>
+                <pattern id="wall-top" patternUnits="userSpaceOnUse" width="48" height="72">
+                  <image href="./assets/wall-texture-top.png" x="0" y="-22" width="48" height="72" />
+                </pattern>
+              </defs>
+            <polygon points="0,0 760,0 709,51 50,51" fill="url(#wall-top)"/>
+          </svg>
+          <svg id="border-bottom">
+            <defs>
+                <pattern id="wall-bottom" patternUnits="userSpaceOnUse" width="48" height="72">
+                  <image href="./assets/wall-texture-bottom.png" x="0" y="0" width="48" height="72" />
+                </pattern>
+              </defs>
+            <polygon points="50,0 709,0 760,50 0,50" fill="url(#wall-bottom)"/>
+          </svg>
     </div>
 
     <!-- Game Over Scene -->

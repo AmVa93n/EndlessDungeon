@@ -13,16 +13,49 @@
 
 #main {
     position: relative;
-    background-color: gray;
 }
 
 #gamespace {
-    background-color: brown;
-    width: 660px;
+    background-image: url('../assets/floor-texture.png');
+    width: 659px;
     height: 570px;
-    border-style: solid;
     border-width: 1px;
     margin: 50px 50px;
+}
+
+#border-top {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 51px;
+    width: 100%;
+}
+
+#border-bottom {
+    position: absolute;
+    top: 620px;
+    left: 0px;
+    height: 50px;
+    width: 100%;
+}
+
+#border-left {
+    background-image: url('../assets/wall-texture-left.png');
+    background-position: 51px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 50px;
+    height: 100%;
+}
+
+#border-right {
+    background-image: url('../assets/wall-texture-right.png');
+    position: absolute;
+    top: 0px;
+    left: 709px;
+    width: 50px;
+    height: 100%;
 }
 
 #stats {
