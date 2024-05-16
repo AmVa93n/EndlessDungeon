@@ -1,6 +1,7 @@
 var mainScene, startScene, gameoverScene, gameSpace
 var $scene = null // reference to current scene displayed on screen
 var $game, $player, $entrance, $exit = null // reference to current instances of each class in the game session
+const KEYS = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false}
 
 window.onload = function() {
     mainScene = document.getElementById('main')
@@ -20,15 +21,11 @@ function setupListeners() {
     )
     window.addEventListener("keydown", () => {
         event.preventDefault()
-        let direction
-        switch(event.key) {
-            case "ArrowUp": direction = 8; break
-            case "ArrowDown": direction = 2; break
-            case "ArrowLeft": direction = 4; break
-            case "ArrowRight": direction = 6
-        }
-        if ($player.isExiting || $player.isEntering) return
-        $player.move(direction)
+        KEYS[event.key] = true
+    })
+    window.addEventListener("keyup", () => {
+        event.preventDefault()
+        KEYS[event.key] = false
     })
 }
 
@@ -92,21 +89,23 @@ class GameSession {
         if (levelNumber > 1) {
             this.scrollMap()
             this.setNextExit()
-            for (let obstacle of this.obstacles) obstacle.element.remove()
-            for (let enemy of this.enemies) enemy.element.remove()
+            for (let obstacle of this.obstacles) obstacle.remove()
+            for (let enemy of this.enemies) enemy.remove()
         }
-        this.createObstacles()
         this.createEnemies(levelNumber)
+        this.createObstacles()
+        if (levelNumber > 1) {
+            $entrance.animFrame = 0
+            $entrance.isClosing = true
+            $player.isEntering = true
+        }
         this.level = levelNumber
         document.getElementById('lvl').textContent = this.level
     }
     scrollMap() {
         $entrance.direction = reverseDir($exit.direction)
         $entrance.locate($entrance.getX($exit), $entrance.getY($exit))
-        $entrance.animFrame = 0
-        $entrance.isClosing = true
         $player.locate($entrance.x+5, $entrance.y)
-        $player.isEntering = true
     }
     setNextExit() {
         $exit.direction = $exit.getDirection($entrance.direction)
@@ -118,25 +117,43 @@ class GameSession {
     createEnemies(levelNumber) {
         var enemiesCount = Math.floor(levelNumber / this.enemyCountInterval) // 1 enemy added every X levels
         if (enemiesCount == 0) enemiesCount = 1 // default to 1
-        for (let i = 0; i < enemiesCount; i++) {
-            var newEnemy = new Enemy()
-            if (!newEnemy.canSpawn()) {
-                newEnemy.element.remove()
-                continue
-            } 
-            this.enemies.push(newEnemy)
+        while (this.enemies.length < enemiesCount) {
+            let x = this.spawnX(48)
+            let y = this.spawnY(48)
+            if (!this.isAreaFree(x, y, 48, 48, 0)) continue
+            this.enemies.push(new Enemy(x, y))
         }
     }
     createObstacles() {
-        var obstacleCount = randomize(3,10)
-        for (let i = 0; i < obstacleCount; i++) {
-            var newObstacle = new Obstacle()
-            if (!newObstacle.canSpawn()) {
-                newObstacle.element.remove()
-                continue
-            } 
-            this.obstacles.push(newObstacle)
+        var obstacleTypes = ['pillar-H','pillar-broken-H','pillar-broken','rubble','hole']
+        for (let obstType of obstacleTypes) {
+            let obstacleCount = randomize(1,3)
+            for (let i = 0; i < obstacleCount; i++) {
+                let x = this.spawnX(48)
+                let y = this.spawnY(48)
+                if (!this.isAreaFree(x, y, 48, 48, 48)) continue
+                this.obstacles.push(new Obstacle(x, y, obstType))
+            }
         }
+    }
+    spawnX(w) {
+        var max = gameSpace.clientWidth - w
+        var min = w
+        return randomize(min, max)
+    }
+    spawnY(h) {
+        var max = gameSpace.clientHeight - h
+        var min = h
+        return randomize(min, max)
+    }
+    isAreaFree(x, y, w, h, padding) {
+        var objects = this.getAllObjects()
+        return !objects.some(obj => {
+            return y - padding < obj.y + obj.height 
+                && y + h + padding > obj.y 
+                && x - padding < obj.x + obj.width 
+                && x + w + padding > obj.x
+        })
     }
     update() {
         document.getElementById('enemies').textContent = this.enemies.length
@@ -158,6 +175,9 @@ class GameSession {
     updateScore() {
         this.score += this.enemies.length * this.level
         document.getElementById('score').textContent = this.score
+    }
+    isKeyDown(keyName) {
+        return KEYS[keyName]
     }
 }
 
@@ -214,11 +234,18 @@ class GameObject {
             && this.x < obj.x + obj.width && this.x + this.width > obj.x
     }
     wouldCollide(direction, obj) {
-        var step = direction == 8 || direction == 4 ? - this.speed : this.speed
-        return this.y + step < obj.y + obj.height &&
-            this.y + this.height + step > obj.y &&
-            this.x + step < obj.x + obj.width &&
-            this.x + this.width + step > obj.x
+        var step = direction == 8 || direction == 4 ? - 1 : 1
+        var collision = this.y + step < obj.y + obj.height &&
+                        this.y + this.height + step > obj.y &&
+                        this.x + step < obj.x + obj.width &&
+                        this.x + this.width + step > obj.x
+
+            switch(direction) {
+                case 8: return collision && this.y > obj.y
+                case 2: return collision && this.y < obj.y
+                case 4: return collision && this.x > obj.x
+                case 6: return collision && this.x < obj.x
+            }
     }
     wouldReachBorder(direction) {
         switch(direction) {
@@ -227,20 +254,6 @@ class GameObject {
             case 4: return this.x - this.speed <= 50
             case 6: return this.x + this.speed >= gameSpace.clientWidth 
         }
-    }
-    spawnX() {
-        var max = gameSpace.clientWidth - this.width
-        var min = this.width
-        return randomize(min, max)
-    }
-    spawnY() {
-        var max = gameSpace.clientHeight - this.height
-        var min = this.height
-        return randomize(min, max)
-    }
-    canSpawn() {
-        var objects = $game.getAllObjects()
-        return !objects.some(obj => this.isCollided(obj))
     }
     remove() {
         this.element.remove()
@@ -254,7 +267,7 @@ class Player extends GameObject {
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
         this.direction = 8
-        this.speed = 10
+        this.speed = 1
         this.stepCount = 5
         this.stepFrame = 0
         this.health = 5
@@ -287,9 +300,25 @@ class Player extends GameObject {
         if (this.health <= 0) endGame()
     }
     update() {
+        this.updateInput()
         super.update()
         if (this.isExiting) this.updateExit()
         if (this.isEntering) this.updateEnter()
+    }
+    updateInput() {
+        if (this.isExiting || this.isEntering) return
+        for (let keyName in KEYS) {
+            if ($game.isKeyDown(keyName)) {
+                let direction
+                switch(keyName) {
+                    case "ArrowUp": direction = 8; break
+                    case "ArrowDown": direction = 2; break
+                    case "ArrowLeft": direction = 4; break
+                    case "ArrowRight": direction = 6
+                }
+                this.move(direction)
+            }
+        }
     }
     updateImage() {
         var step
@@ -329,16 +358,13 @@ class Player extends GameObject {
             this.transitionCount = 40
             $exit.fadeout.remove()
             $game.isPaused = false
-            this.speed = 10
         }
     }
 }
 
 class Enemy extends GameObject {
-    constructor() {
-        super(0, 0, 48, 48)
-        this.x = this.spawnX()
-        this.y = this.spawnY()
+    constructor(x, y) {
+        super(x, y, 48, 48)
         this.element.style.backgroundImage = "url('./assets/enemy.png')"
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
@@ -568,7 +594,6 @@ class Exit extends GameObject {
         $game.isPaused = true
     }
     startTransition() {
-        $player.speed = 1
         this.fadeout = document.createElement('div')
         this.fadeoutOpacity = 0
         mainScene.appendChild(this.fadeout)
@@ -579,20 +604,27 @@ class Exit extends GameObject {
         this.fadeout.style.position = 'absolute'
         this.fadeout.style.top = 0
         this.fadeout.style.left = 0
+        this.fadeout.style.zIndex = '9999'
     }
 }
 
 class Obstacle extends GameObject {
-    constructor() {
-        super(0, 0, 48, 48)
-        this.x = this.spawnX()
-        this.y = this.spawnY()
-        this.element.style.overflow = 'visible'
-        this.element.style.backgroundImage = "url('./assets/obstacle.png')"
-        this.element.style.backgroundSize = "48px 96px"
-        this.element.style.backgroundPosition = "0px 48px"
+    constructor(x, y, fileName) {
+        super(x, y, 48, 48)
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
+        if (fileName.includes('-H')) { // 48x96 pixels
+            this.img = document.createElement('img')
+            this.img.src = `./assets/${fileName}.png`
+            this.img.width = 48
+            this.img.height = 96
+            this.img.style.maxHeight = '200%'
+            this.img.style.position = 'absolute'
+            this.img.style.top = '-100%'
+            this.element.appendChild(this.img)
+        } else { // 48x48 pixels
+            this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+        }
         this.updatePosition()
     }
     remove() {
