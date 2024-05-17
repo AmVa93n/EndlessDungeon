@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Page Title</title>
+    <title>Endless Dungeon</title>
     <!-- Additional meta tags, stylesheets, and scripts can be included here -->
     <link rel="stylesheet" href="./styles/css-reset.css">
     <link rel="stylesheet" href="./styles/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Start Scene -->
-    <div class="scene" id="start">
-        <button id="btn-start">Start Game</button>
+    <div class="scene" id="titleScene">
+        <img id="title" src="./assets/title.png"></img>
+        <p>How long can <span>you</span> survive?</p>
+        <button id="btn-start">Start Adventure</button>
     </div>
 
     <!-- Main Scene -->
     <div class="scene" id="main">
         <div id="stats">
             <p>Level: <span id="lvl"></span></p>
-            <p>Enemies: <span id="enemies"></span></p>
             <p>Health: <span id="hp"></span></p>
             <p>Score: <span id="score"></span></p>
         </div>
@@ -44,10 +48,11 @@
     </div>
 
     <!-- Game Over Scene -->
-    <div class="scene" id="gameover">
-        <h1>Game Over!</h1>
-        <p>Your score is: <span id="final-score"></span></p>
-        <button id="btn-restart">Restart Game</button>
+    <div class="scene" id="gameoverScene">
+        <img id="gameover" src="./assets/gameover.png"></img>
+        <p>Level reached: <span id="final-level" style="color: white;"></span></p>
+        <p>Score: <span id="final-score" style="color: white;"></span></p>
+        <button id="btn-restart">Play Again</button>
     </div>
 
     <script src="./main.js"></script>

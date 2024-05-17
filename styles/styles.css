@@ -1,14 +1,63 @@
+body {
+    background-color: black;
+    font-family: "Josefin Sans", sans-serif;
+}
+
+button {
+    border-style: solid;
+    text-align: center;
+    display: block;
+    border-radius: 10px;
+    opacity: 0.5;
+    background-color: rgb(220, 103, 52);
+    background-image: linear-gradient(to bottom, #fff, transparent); 
+    color: black;
+    font-size: 20px;
+    border-width: 1px;
+    border-color: rgb(220, 103, 52);
+    padding: 10px;
+    width: 25%;
+    margin-top: 20px;
+}
+
+button:hover {
+    cursor: pointer;
+    opacity: 1;
+}
+
+button:active {
+    background-image: linear-gradient(to top, #fff, transparent);
+}
+
 .scene {
     display: none;
     width: 760px;
     height: 670px;
     margin: auto;
+    margin-top: 10px;
     border-style: solid;
     border-width: 1px;
+    border-color: black;
 } 
 
-#start {
-    display: block;
+#titleScene {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-image: url('../assets/titlebackground.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+#titleScene p {
+    margin-top: 20px;
+    font-size: 30px;
+    color: rgb(233, 162, 132);
+}
+
+#titleScene p span {
+    font-weight: bold;
 }
 
 #main {
@@ -63,11 +112,18 @@
     left: -80px
 }
 
-button {
-    width: 33%;
-    margin: auto;
-    margin-top: 40%;
-    display: block;
-    border-style: solid;
-    text-align: center;
+#gameoverScene {
+    /* display: flex; */
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-image: url('../assets/gameover-background.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+#gameoverScene p {
+    margin-top: 20px;
+    font-size: 30px;
+    color: rgb(233, 162, 132);
 }
