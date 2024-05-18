@@ -19,23 +19,32 @@
         <button class="btn-start">Start Adventure</button>
         <button id="btn-instructions">How to Play?</button>
         <button id="btn-highscores">High Scores</button>
-        <audio id="title-bgm" src="./assets/title-bgm.ogg" autoplay loop></audio>
-        <script>document.getElementById('title-bgm').volume = 0.15</script>
+        <audio id="title-bgm" src="./assets/title-bgm.ogg" loop></audio>
+        <script></script>
     </div>
 
     <!-- Instructions Scene -->
     <div class="scene" id="instructions">
       <h1>How to Play?</h1>
-      <div style="width: 300px">
-        <p>The game will keep generating new levels indefinitely</p>
-        <p>As you progress, you'll encounter more enemies, and they will deal greater damage</p>
-        <p>Your goal is to advance as deep into the dungeon as you can without dying</p>
+      <div style="width: 400px">
+        <p>The game will keep generating new levels indefinitely. 
+          Your goal is to advance as deep into the dungeon as you can without dying.</p>
       </div>
       <p style="text-decoration: underline;">In each level:</p>
       <p>Head to the golden door</p>
-      <div id="door"></div>
-      <p>Avoid enemies on the way</p>
-      <div id="enemy"></div>
+      <div id="exit"></div>
+      <p>Avoid monsters on the way!</p>
+      <div style="display: flex; justify-content: center;">
+        <div class="enemy" style="background-image: url('./assets/bat.png');"></div>
+        <div class="enemy" style="background-image: url('./assets/slime.png');"></div>
+        <div class="enemy" style="background-image: url('./assets/orc.png');"></div>
+        <div class="enemy" style="background-image: url('./assets/skeleton.png');"></div>
+      </div>
+      <div style="width: 400px">
+        <p>As you progress, you'll encounter more monsters, and they will deal greater damage.</p>
+        <p>Each monster successfully avoided will score you points according to its strength. 
+          Monsters who attacked you will score no points!</p>
+      </div>
       <button class="btn-backtotitle">Back to Title</button>
     </div>
 
@@ -90,6 +99,10 @@
         <div id="hud-lvl">Level <span id="lvl"></span></div>
         <div id="hud-score">Score: <span id="score"></span></div>
         <div class="fadeout"></div>
+        <audio id="main-bgm" src="./assets/main-bgm.ogg" loop></audio>
+        <audio id="hurt1" src="./assets/hurt_01.ogg"></audio>
+        <audio id="hurt2" src="./assets/hurt_04.ogg"></audio>
+        <audio id="door" src="./assets/door.ogg"></audio>
       </div>
 
     <!-- Game Over Scene -->
@@ -108,7 +121,8 @@
             <button id="btn-submit">Submit</button>
             <button id="btn-cancel">Cancel</button>
           </div>
-      </div>
+        </div>
+      <audio id="gameover-bgm" src="./assets/gameover-bgm.ogg" loop></audio>
     </div>
 
     <script src="./main.js"></script>

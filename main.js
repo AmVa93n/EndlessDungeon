@@ -54,6 +54,24 @@ function switchScene(newScene) {
     if (!$scene) $scene = newScene
     $scene.style.display = 'none'
     newScene.style.display = 'flex'
+    let toPlay
+    let toPause = []
+    switch(newScene) {
+        case titleScene: 
+            toPlay = 'title-bgm'
+            toPause = ['main-bgm','gameover-bgm']; break
+        case mainScene: 
+            toPlay = 'main-bgm'
+            toPause = ['title-bgm','gameover-bgm']; break
+        case howtoScene:
+        case scoresScene:
+            toPlay = 'title-bgm'; break
+        case gameoverScene: 
+            toPlay = 'gameover-bgm'
+            toPause = ['main-bgm']; break
+    }
+    toPause.forEach(bgm => {if (!document.getElementById(bgm).paused) fadoutBgm(bgm)});
+    if (toPlay && document.getElementById(toPlay).paused) fadeinBgm(toPlay, 0.2)
     $scene = newScene
 }
 
@@ -75,6 +93,41 @@ function endGame() {
     },680)
     document.getElementById('final-score').textContent = $game.score
     document.getElementById('final-level').textContent = $game.level
+}
+
+function playSound(id, volume) {
+    if (volume) document.getElementById(id).volume = volume
+    document.getElementById(id).play()
+}
+
+function fadeinBgm(id, maxVol) {
+    let audio = document.getElementById(id)
+    let increment = 0.05;
+    let interval = 2000 / (maxVol / increment);
+    audio.volume = 0;
+    audio.play();
+    let fadeAudio = setInterval(() => {
+        if (audio.volume < maxVol) {
+            audio.volume = Math.min(audio.volume + increment, maxVol);
+        } else {
+            clearInterval(fadeAudio);
+        }
+    }, interval);
+}
+
+function fadoutBgm(id) {
+    let audio = document.getElementById(id)
+    let increment = 0.05;
+    let interval = 1000 / (audio.volume / increment);
+    let fadeAudio = setInterval(() => {
+        if (audio.volume > 0) {
+            audio.volume = Math.max(audio.volume - increment, 0);
+        } else {
+            audio.pause();
+            audio.currentTime = 0;
+            clearInterval(fadeAudio);
+        }
+    }, interval);
 }
 
 function submitScore() {
@@ -126,12 +179,20 @@ function randomize(min, max) {
     return (Math.floor(Math.random() * (max - min + 1))) + min
 }
 
+const enemyData = {
+    'bat': {minLvl: 1, minPower: 1, maxPower: 3, points: 1},
+    'slime': {minLvl: 2, minPower: 3, maxPower: 6, points: 2},
+    'orc': {minLvl: 5, minPower: 6, maxPower: 10, points: 5},
+    'skeleton': {minLvl: 7, minPower: 10, maxPower: 13, points: 10},
+    'ghost': {minLvl: 10, minPower: 13, maxPower: 17, points: 15},
+    'imp': {minLvl: 20, minPower: 17, maxPower: 21, points: 20},
+    'minotaur': {minLvl: 30, minPower: 21, maxPower: 25, points: 25},
+}
+
 class GameSession {
     constructor() {
         this.score = 0
         this.level = 0
-        this.isLevelClear = false
-        this.enemyCountInterval = 3
         this.obstacles = []
         this.enemies = []
     }
@@ -140,6 +201,7 @@ class GameSession {
         this.createLevel(levelNumber)
         $entrance.animFrame = 0
         $entrance.isClosing = true
+        if (levelNumber == 1) playSound('door',0.5)
         $player.isEntering = true
         mainFadeout.style.opacity = 0 
     }
@@ -180,25 +242,33 @@ class GameSession {
             this.enemies = []
     }
     createEnemies(levelNumber) {
-        var enemiesCount = Math.floor(levelNumber / this.enemyCountInterval) // 1 enemy added every X levels
-        if (enemiesCount == 0) enemiesCount = 1 // default to 1
-        while (this.enemies.length < enemiesCount) {
+        var enemiesCount = 1 + Math.floor(levelNumber / 3) // 1 enemy added every 3 levels
+        for (let spawned = 0, failed = 0; spawned < enemiesCount && failed < 100;) {
+            let enemyList = Object.keys(enemyData).filter(e => enemyData[e].minLvl <= levelNumber)
+            let enemyType = enemyList[randomize(0, enemyList.length-1)]
             let x = this.spawnX(48)
             let y = this.spawnY(48)
-            if (!this.isAreaFree(x, y, 48, 48, 0)) continue
-            this.enemies.push(new Enemy(x, y))
+            if (!this.isAreaFree(x, y, 48, 48, 0)) {
+                failed++
+                continue
+            }
+            this.enemies.push(new Enemy(x, y, enemyType))
+            spawned++
         }
     }
     createObstacles() {
         var obstacleTypes = ['pillar-H','pillar-broken-H','pillar-broken','rubble','hole']
         for (let obstType of obstacleTypes) {
             let obstacleCount = randomize(1,3)
-            for (let i = 0; i < obstacleCount;) {
+            for (let spawned = 0, failed = 0; spawned < obstacleCount && failed < 100;) {
                 let x = this.spawnX(48)
                 let y = this.spawnY(48)
-                if (!this.isAreaFree(x, y, 48, 48, 50)) continue
+                if (!this.isAreaFree(x, y, 48, 48, 50)) {
+                    failed++
+                    continue
+                }
                 this.obstacles.push(new Obstacle(x, y, obstType))
-                i++
+                spawned++
             }
         }
     }
@@ -241,7 +311,7 @@ class GameSession {
         for (let obj of this.getAllObjects()) obj.removeElement()
     }
     updateScore() {
-        this.score += this.enemies.length * this.level
+        for (let enemy of this.enemies) this.score += enemy.points
         document.getElementById('score').textContent = this.score
     }
     updateHealthBar() {
@@ -391,6 +461,7 @@ class Player extends GameObject {
         this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
     }
     update() {
+        if (this.safeCount > 0) this.safeCount --
         this.updateMove()
         super.update()
         if (this.isExiting) this.updateExitAnimation()
@@ -399,7 +470,10 @@ class Player extends GameObject {
     updateMove() {
         if (this.downCount > 0) {
             this.downCount --
-            if (this.downCount == 0) this.setImage('player')
+            if (this.downCount == 0) {
+                this.setImage('player')
+                this.safeCount = 60
+            }
             return
         }
         if (this.isExiting || this.isEntering) return
@@ -457,19 +531,27 @@ class Player extends GameObject {
     takeDamage(damage) {
         this.health -= damage
         $game.updateHealthBar()
+        playSound('hurt'+randomize(1,2))
         $player.setImage('player-down')
-        $player.downCount = 30
+        $player.downCount = 60
+        let damageOverlay = document.createElement('img');
+        damageOverlay.src = './assets/damage-overlay.png'
+        damageOverlay.classList.add('damage');
+        this.element.appendChild(damageOverlay);
+        setTimeout(() => {damageOverlay.remove();}, 1000);
         if (this.health <= 0) endGame()
     }
 }
 
 class Enemy extends GameObject {
-    constructor(x, y) {
+    constructor(x, y, fileName) {
         super(x, y, 48, 48)
-        this.element.style.backgroundImage = "url('./assets/enemy.png')"
+        this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
-        this.power = Math.floor(1 + (randomize(1, 4) + $game.level * 0.1)) // increase base damage every 10 levels
+        var data = enemyData[fileName]
+        this.power = randomize(data.minPower, data.maxPower) + Math.floor($game.level / 5) // increase base damage every 5 levels
+        this.points = data.points
         this.speed = 1
         this.direction = randomize(1, 4) * 2 
         this.stepCount = 10
@@ -515,11 +597,15 @@ class Enemy extends GameObject {
     }
     attack() {
         if ($player.downCount > 0) return
+        if ($player.safeCount > 0) return
+        if ($player.isExiting) return
+        if ($player.isEntering) return
         $player.takeDamage(this.power)
         $player.speed = 24
         $player.move(this.direction)
         $player.speed = 1
         this.setDirection(reverseDir(this.direction))
+        this.points = 0
     }
     remove() {
         this.removeElement()
@@ -693,6 +779,7 @@ class Exit extends GameObject {
     open() {
         if ($game.isPaused) return
         this.isOpening = true
+        playSound('door',0.5)
         $player.isExiting = true
         mainFadeout.style.opacity = 1 
         $game.isPaused = true
