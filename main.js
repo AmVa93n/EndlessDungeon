@@ -1,4 +1,4 @@
-var mainScene, titleScene, gameoverScene, gameSpace, mainFadeout
+var mainScene, titleScene, howtoScene, scoresScene, gameoverScene, gameSpace, mainFadeout
 var $scene = null // reference to current scene displayed on screen
 var $game, $player, $entrance, $exit = null // reference to current instances of each class in the game session
 const KEYS = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false}
@@ -6,6 +6,8 @@ const KEYS = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRi
 window.onload = function() {
     mainScene = document.getElementById('main')
     titleScene = document.getElementById('titleScene')
+    howtoScene = document.getElementById('instructions')
+    scoresScene = document.getElementById('highscores')
     gameoverScene = document.getElementById('gameoverScene')
     gameSpace = document.getElementById('gamespace')
     mainFadeout = document.querySelector('#main .fadeout')
@@ -14,18 +16,36 @@ window.onload = function() {
 }
 
 function setupListeners() {
-    document.getElementById('btn-start').addEventListener('click', () =>
+    let btnstart = document.querySelectorAll('.btn-start')
+    let btntotitle = document.querySelectorAll('.btn-backtotitle')
+    btnstart.forEach(btn => {btn.addEventListener('click', () =>
         setTimeout(newGame, 300)
+    )}) 
+    document.getElementById('btn-instructions').addEventListener('click', () =>
+        setTimeout(()=>{switchScene(howtoScene)}, 300)
     )
-    document.getElementById('btn-restart').addEventListener('click', () =>
-        setTimeout(newGame, 300)
+    document.getElementById('btn-highscores').addEventListener('click', () =>
+        setTimeout(()=>{
+            updateHighscores()
+            switchScene(scoresScene)
+        }, 300)
+    )
+    btntotitle.forEach(btn => {btn.addEventListener('click', () =>
+        setTimeout(()=>{switchScene(titleScene)}, 300)
+    )})
+    document.getElementById('btn-submit-score').addEventListener('click', () =>
+        setTimeout(()=>{document.getElementById('submit-box').style.display = 'block'}, 300)
+    )
+    document.getElementById('btn-submit').addEventListener('click', submitScore)
+    document.getElementById('btn-cancel').addEventListener('click', () =>
+        document.getElementById('submit-box').style.display = 'none'
     )
     window.addEventListener("keydown", () => {
-        event.preventDefault()
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
         KEYS[event.key] = true
     })
     window.addEventListener("keyup", () => {
-        event.preventDefault()
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
         KEYS[event.key] = false
     })
 }
@@ -40,7 +60,7 @@ function switchScene(newScene) {
 function newGame() {
     switchScene(mainScene)
     $game = new GameSession()
-    $game.createLevel(1)
+    $game.startLevel(1)
     $game.interval = setInterval(gameTick, 17)
 }
 
@@ -55,6 +75,34 @@ function endGame() {
     },680)
     document.getElementById('final-score').textContent = $game.score
     document.getElementById('final-level').textContent = $game.level
+}
+
+function submitScore() {
+    document.getElementById('submit-box').style.display = 'none'
+    var name = document.getElementById('submit-name').value
+    localStorage.setItem(name, JSON.stringify({
+        level: document.getElementById('final-level').textContent, 
+        score: document.getElementById('final-score').textContent
+    }));
+}
+
+function updateHighscores() {
+    var players = Object.keys(localStorage)
+    var data = players.map(p => {
+        let parsed = JSON.parse(localStorage.getItem(p))
+        return {name: p, level: parsed.level, score: parsed.score}
+    })
+    data.sort((a, b) => b.score - a.score);
+    var rowName = [...document.querySelectorAll('.hs-name')]
+    var rowLevel = [...document.querySelectorAll('.hs-level')]
+    var rowScore = [...document.querySelectorAll('.hs-score')]
+
+    for (let i = 0; i < 10 ; i++) {
+        if (!data[i]) continue
+        rowName[i].textContent = data[i].name
+        rowLevel[i].textContent = data[i].level
+        rowScore[i].textContent = data[i].score
+    }
 }
 
 function gameTick() {
@@ -87,28 +135,32 @@ class GameSession {
         this.obstacles = []
         this.enemies = []
     }
-    createLevel(levelNumber) {
-        if (levelNumber == 1) {
-            $entrance = new Entrance()
-            $exit = new Exit()
-            $player = new Player()
-            document.getElementById('score').textContent = 0
-        }
-        if (levelNumber > 1) {
-            this.scrollMap()
-            this.setNextExit()
-            for (let obj of this.enemies.concat(this.obstacles)) obj.removeElement()
-            this.obstacles = []
-            this.enemies = []
-        }
-        this.createEnemies(levelNumber)
-        this.createObstacles()
+    startLevel(levelNumber) {
+        if (levelNumber > 1) this.updateScore()
+        this.createLevel(levelNumber)
         $entrance.animFrame = 0
         $entrance.isClosing = true
         $player.isEntering = true
         mainFadeout.style.opacity = 0 
+    }
+    createLevel(levelNumber) {
+        if (levelNumber == 1) this.initElements()
+        if (levelNumber > 1) {
+            this.scrollMap()
+            this.setNextExit()
+            this.clearPreviousLevel()
+        }
+        this.createEnemies(levelNumber)
+        this.createObstacles()
         this.level = levelNumber
         document.getElementById('lvl').textContent = this.level
+    }
+    initElements() {
+        $entrance = new Entrance()
+        $exit = new Exit()
+        $player = new Player()
+        document.getElementById('score').textContent = 0
+        document.getElementById('hpbar').style.width = `96px`
     }
     scrollMap() {
         $entrance.direction = reverseDir($exit.direction)
@@ -121,6 +173,11 @@ class GameSession {
         var newExitY = $exit.getY($exit.direction)
         $exit.locate(newExitX, newExitY)
         $exit.animFrame = 0
+    }
+    clearPreviousLevel() {
+        for (let obj of this.enemies.concat(this.obstacles)) obj.removeElement()
+            this.obstacles = []
+            this.enemies = []
     }
     createEnemies(levelNumber) {
         var enemiesCount = Math.floor(levelNumber / this.enemyCountInterval) // 1 enemy added every X levels
@@ -173,10 +230,6 @@ class GameSession {
     update() {
 
     }
-    nextLevel() {
-        this.updateScore()
-        this.createLevel(this.level + 1)
-    }
     getAllObjects() {
         var objects = this.enemies.concat(this.obstacles)
         objects.push($entrance)
@@ -190,6 +243,12 @@ class GameSession {
     updateScore() {
         this.score += this.enemies.length * this.level
         document.getElementById('score').textContent = this.score
+    }
+    updateHealthBar() {
+        var hpbar = document.getElementById('hpbar')
+        var percentage = Math.floor($player.health / $player.maxHp * 100)
+        var newWidth = Math.floor(96 * percentage / 100)
+        hpbar.style.width = `${newWidth}px`
     }
     isKeyDown(keyName) {
         return KEYS[keyName]
@@ -303,7 +362,7 @@ class Player extends GameObject {
         this.speed = 1
         this.stepCount = 10
         this.stepFrame = 0
-        this.maxHp = 100
+        this.maxHp = 50
         this.health = this.maxHp
         this.isExiting = false
         this.isEntering = false
@@ -327,11 +386,6 @@ class Player extends GameObject {
             return false
         }
         return true
-    }
-    loseHealth(damage) {
-        this.health -= damage
-        this.updateHealthBar()
-        if (this.health <= 0) endGame()
     }
     setImage(fileName) {
         this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
@@ -388,7 +442,7 @@ class Player extends GameObject {
         if (this.transitionCount == 0) {
             this.isExiting = false
             this.transitionCount = 40
-            $game.nextLevel()
+            $game.startLevel($game.level + 1)
         }
     }
     updateEnterAnimation() {
@@ -400,11 +454,12 @@ class Player extends GameObject {
             $game.isPaused = false
         }
     }
-    updateHealthBar() {
-        var hpbar = document.getElementById('hpbar')
-        var percentage = Math.floor(this.health / this.maxHp * 100)
-        var newWidth = Math.floor(96 * percentage / 100)
-        hpbar.style.width = `${newWidth}px`
+    takeDamage(damage) {
+        this.health -= damage
+        $game.updateHealthBar()
+        $player.setImage('player-down')
+        $player.downCount = 30
+        if (this.health <= 0) endGame()
     }
 }
 
@@ -414,7 +469,7 @@ class Enemy extends GameObject {
         this.element.style.backgroundImage = "url('./assets/enemy.png')"
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
-        this.damage = Math.floor(1 + (randomize(1, 4) + $game.level * 0.1)) // increase base damage every 10 levels
+        this.power = Math.floor(1 + (randomize(1, 4) + $game.level * 0.1)) // increase base damage every 10 levels
         this.speed = 1
         this.direction = randomize(1, 4) * 2 
         this.stepCount = 10
@@ -460,12 +515,10 @@ class Enemy extends GameObject {
     }
     attack() {
         if ($player.downCount > 0) return
-        $player.loseHealth(this.damage)
-        $player.setImage('player-down')
-        $player.speed = 12
+        $player.takeDamage(this.power)
+        $player.speed = 24
         $player.move(this.direction)
         $player.speed = 1
-        $player.downCount = 60
         this.setDirection(reverseDir(this.direction))
     }
     remove() {

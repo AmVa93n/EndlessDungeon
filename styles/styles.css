@@ -38,12 +38,18 @@ button:active {
     border-style: solid;
     border-width: 1px;
     border-color: black;
+    background-image: url('../assets/titlebackground.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
 } 
 
 .fadeout {
     background-color: black;
     width: 760px;
-    height: 670px;
+    height: 671px;
     position: absolute;
     z-index: 9999;
     transition: opacity 680ms;
@@ -51,12 +57,6 @@ button:active {
 
 #titleScene {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    background-image: url('../assets/titlebackground.png');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
 }
 
 #titleScene p {
@@ -69,8 +69,84 @@ button:active {
     font-weight: bold;
 }
 
+#instructions h1 {
+    font-size: 50px;
+    color: rgb(233, 162, 132);
+    text-align: center;
+}
+
+#instructions p {
+    margin-top: 20px;
+    font-size: 20px;
+    color: rgb(233, 162, 132);
+    text-align: center;
+}
+#door {
+    margin-top: 20px;
+    width: 60px;
+    height: 60px;
+    background-image: url('../assets/exit.png');
+    animation: door infinite 3s steps(1);
+}
+
+@keyframes door {
+    0% {background-position-x: 0px}
+    25% {background-position-x: 180px}
+    50% {background-position-x: 120px}
+    75% {background-position-x: 60px}
+}
+
+#enemy {
+    margin-top: 20px;
+    width: 48px;
+    height: 48px;
+    background-image: url('../assets/enemy.png');
+    animation: enemy infinite 0.7s steps(1);
+}
+
+@keyframes enemy {
+    0% {background-position-x: 0px}
+    25% {background-position-x: 96px}
+    50% {background-position-x: 48px}
+    75% {background-position-x: 96px}
+}
+
+#highscores {
+    color: rgb(233, 162, 132);
+}
+
+#highscores h1 {
+    font-size: 50px;
+    color: rgb(233, 162, 132);
+    text-align: center;
+}
+
+#score-headers {
+    width: 350px;
+    display: flex; 
+    justify-content: space-around;
+}
+
+table {
+    margin-top: 20px;
+    font-size: 20px;
+    color: rgb(233, 162, 132);
+    text-align: center;
+    border-collapse: separate;
+    border-spacing: 15px;
+}
+
+thead {
+    text-decoration: underline;
+}
+
+th, td {
+    padding: 0px 15px; /* Increase horizontal padding */
+}
+
 #main {
     position: relative;
+    background-image: none;
 }
 
 .face {
@@ -180,19 +256,7 @@ button:active {
     height: 100%;
 }
 
-#stats {
-    position: absolute;
-    left: -80px
-}
-
 #gameoverScene {
-    /* display: flex; */
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    background-image: url('../assets/gameover-background.png');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
     position: relative;
 }
 
@@ -200,4 +264,33 @@ button:active {
     margin-top: 20px;
     font-size: 30px;
     color: rgb(233, 162, 132);
+}
+
+#submit-box {
+    display: none;
+    position: absolute;
+    top: 68%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    background-color: rgb(153, 66, 28);
+    border: 1px solid black;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    text-align: center;
+    font-size: 20px;
+    border-radius: 5px;
+}
+
+#submit-name {
+    margin-top: 10px;
+    width: 80%;
+    background-color: white;
+}
+
+#submit-box button {
+    width: 33%;
+    font-size: 15px;
+    margin-left: 5px;
+    margin-right: 5px;
 }

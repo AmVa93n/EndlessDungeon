@@ -12,11 +12,54 @@
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Start Scene -->
+    <!-- Title Scene -->
     <div class="scene" id="titleScene">
         <img id="title" src="./assets/title.png"></img>
         <p>How long can <span>you</span> survive?</p>
-        <button id="btn-start">Start Adventure</button>
+        <button class="btn-start">Start Adventure</button>
+        <button id="btn-instructions">How to Play?</button>
+        <button id="btn-highscores">High Scores</button>
+        <audio id="title-bgm" src="./assets/title-bgm.ogg" autoplay loop></audio>
+        <script>document.getElementById('title-bgm').volume = 0.15</script>
+    </div>
+
+    <!-- Instructions Scene -->
+    <div class="scene" id="instructions">
+      <h1>How to Play?</h1>
+      <div style="width: 300px">
+        <p>The game will keep generating new levels indefinitely</p>
+        <p>As you progress, you'll encounter more enemies, and they will deal greater damage</p>
+        <p>Your goal is to advance as deep into the dungeon as you can without dying</p>
+      </div>
+      <p style="text-decoration: underline;">In each level:</p>
+      <p>Head to the golden door</p>
+      <div id="door"></div>
+      <p>Avoid enemies on the way</p>
+      <div id="enemy"></div>
+      <button class="btn-backtotitle">Back to Title</button>
+    </div>
+
+    <!-- High Scores Scene -->
+    <div class="scene" id="highscores">
+      <h1>High Scores</h1>
+      <table>
+        <thead>
+            <tr><th>Rank</th><th>Player</th><th>Level</th><th>Score</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>2</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>3</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>4</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>5</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>6</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>7</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>8</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>9</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+            <tr><td>10</td><td class="hs-name">---</td><th class="hs-level">---</th><td class="hs-score">---</td></tr>
+          </tbody>
+        </table>
+      <button class="btn-backtotitle">Back to Title</button>
     </div>
 
     <!-- Main Scene -->
@@ -52,10 +95,20 @@
     <!-- Game Over Scene -->
     <div class="scene" id="gameoverScene">
         <img id="gameover" src="./assets/gameover.png"></img>
-        <p>Level reached: <span id="final-level" style="color: white;"></span></p>
-        <p>Score: <span id="final-score" style="color: white;"></span></p>
-        <button id="btn-restart">Play Again</button>
+        <p>Level reached: <span id="final-level" style="color: white;">0</span></p>
+        <p>Score: <span id="final-score" style="color: white;">0</span></p>
+        <button class="btn-start">Play Again</button>
+        <button id="btn-submit-score">Submit Score</button>
+        <button class="btn-backtotitle">Back to Title</button>
         <div class="fadeout"></div>
+        <div id="submit-box">
+          <label for="submit-name">Enter your name:</label>
+          <input type="text" id="submit-name" name="submit-name">
+          <div style="display: flex; justify-content: center;">
+            <button id="btn-submit">Submit</button>
+            <button id="btn-cancel">Cancel</button>
+          </div>
+      </div>
     </div>
 
     <script src="./main.js"></script>
