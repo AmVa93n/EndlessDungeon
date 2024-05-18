@@ -21,11 +21,6 @@
 
     <!-- Main Scene -->
     <div class="scene" id="main">
-        <div id="stats">
-            <p>Level: <span id="lvl"></span></p>
-            <p>Health: <span id="hp"></span></p>
-            <p>Score: <span id="score"></span></p>
-        </div>
         <div id="gamespace"></div>
         <div id="border-left"></div>
         <div id="border-right"></div>
@@ -36,16 +31,23 @@
                 </pattern>
               </defs>
             <polygon points="0,0 760,0 709,51 50,51" fill="url(#wall-top)"/>
-          </svg>
-          <svg id="border-bottom">
+        </svg>
+        <svg id="border-bottom">
             <defs>
                 <pattern id="wall-bottom" patternUnits="userSpaceOnUse" width="48" height="72">
                   <image href="./assets/wall-texture-bottom.png" x="0" y="0" width="48" height="72" />
                 </pattern>
               </defs>
             <polygon points="50,0 709,0 760,50 0,50" fill="url(#wall-bottom)"/>
-          </svg>
-    </div>
+        </svg>
+        <div class="bar" id="hpbar-bg"></div>
+        <div class="bar" id="hpbar"></div>
+        <div class="face" id="hud-bg"></div>
+        <div class="face" id="hud-face"></div>
+        <div id="hud-lvl">Level <span id="lvl"></span></div>
+        <div id="hud-score">Score: <span id="score"></span></div>
+        <div class="fadeout"></div>
+      </div>
 
     <!-- Game Over Scene -->
     <div class="scene" id="gameoverScene">
@@ -53,6 +55,7 @@
         <p>Level reached: <span id="final-level" style="color: white;"></span></p>
         <p>Score: <span id="final-score" style="color: white;"></span></p>
         <button id="btn-restart">Play Again</button>
+        <div class="fadeout"></div>
     </div>
 
     <script src="./main.js"></script>

@@ -1,4 +1,4 @@
-var mainScene, titleScene, gameoverScene, gameSpace
+var mainScene, titleScene, gameoverScene, gameSpace, mainFadeout
 var $scene = null // reference to current scene displayed on screen
 var $game, $player, $entrance, $exit = null // reference to current instances of each class in the game session
 const KEYS = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false}
@@ -8,6 +8,7 @@ window.onload = function() {
     titleScene = document.getElementById('titleScene')
     gameoverScene = document.getElementById('gameoverScene')
     gameSpace = document.getElementById('gamespace')
+    mainFadeout = document.querySelector('#main .fadeout')
     setupListeners()
     switchScene(titleScene)
 }
@@ -45,8 +46,13 @@ function newGame() {
 
 function endGame() {
     clearInterval($game.interval)
-    $game.removeAll()
-    switchScene(gameoverScene)
+    mainFadeout.style.opacity = 1
+    setTimeout(()=> {
+        $game.removeAll()
+        switchScene(gameoverScene)
+        document.querySelector('#gameoverScene .fadeout').style.opacity = 0
+        setTimeout(()=>{document.querySelector('#gameoverScene .fadeout').style.zIndex = -1},680)
+    },680)
     document.getElementById('final-score').textContent = $game.score
     document.getElementById('final-level').textContent = $game.level
 }
@@ -80,25 +86,13 @@ class GameSession {
         this.enemyCountInterval = 3
         this.obstacles = []
         this.enemies = []
-        this.createFadoutLayer()
-    }
-    createFadoutLayer() {
-        this.fadeout = document.createElement('div')
-        this.fadeoutOpacity = 1
-        mainScene.appendChild(this.fadeout)
-        this.fadeout.style.backgroundColor = 'black'
-        this.fadeout.style.width = '760px'
-        this.fadeout.style.height = '670px'
-        this.fadeout.style.position = 'absolute'
-        this.fadeout.style.top = 0
-        this.fadeout.style.left = 0
-        this.fadeout.style.zIndex = '9999'
     }
     createLevel(levelNumber) {
         if (levelNumber == 1) {
             $entrance = new Entrance()
             $exit = new Exit()
             $player = new Player()
+            document.getElementById('score').textContent = 0
         }
         if (levelNumber > 1) {
             this.scrollMap()
@@ -112,6 +106,7 @@ class GameSession {
         $entrance.animFrame = 0
         $entrance.isClosing = true
         $player.isEntering = true
+        mainFadeout.style.opacity = 0 
         this.level = levelNumber
         document.getElementById('lvl').textContent = this.level
     }
@@ -144,7 +139,7 @@ class GameSession {
             for (let i = 0; i < obstacleCount;) {
                 let x = this.spawnX(48)
                 let y = this.spawnY(48)
-                if (!this.isAreaFree(x, y, 48, 48, 48)) continue
+                if (!this.isAreaFree(x, y, 48, 48, 50)) continue
                 this.obstacles.push(new Obstacle(x, y, obstType))
                 i++
             }
@@ -176,10 +171,7 @@ class GameSession {
             && x < doorPadding.x + doorPadding.width && x + w > doorPadding.x
     }
     update() {
-        this.updateFadeoutLayer()
-    }
-    updateFadeoutLayer() {
-        this.fadeout.style.opacity = `${this.fadeoutOpacity}`
+
     }
     nextLevel() {
         this.updateScore()
@@ -311,7 +303,8 @@ class Player extends GameObject {
         this.speed = 1
         this.stepCount = 10
         this.stepFrame = 0
-        this.health = 10
+        this.maxHp = 100
+        this.health = this.maxHp
         this.isExiting = false
         this.isEntering = false
         this.transitionCount = 40
@@ -337,7 +330,7 @@ class Player extends GameObject {
     }
     loseHealth(damage) {
         this.health -= damage
-        document.getElementById('hp').textContent = $player.health
+        this.updateHealthBar()
         if (this.health <= 0) endGame()
     }
     setImage(fileName) {
@@ -391,7 +384,6 @@ class Player extends GameObject {
     }
     updateExitAnimation() {
         this.transitionCount --
-        $game.fadeoutOpacity += 0.025
         this.move(reverseDir($exit.direction))
         if (this.transitionCount == 0) {
             this.isExiting = false
@@ -401,13 +393,18 @@ class Player extends GameObject {
     }
     updateEnterAnimation() {
         this.transitionCount --
-        $game.fadeoutOpacity -= 0.025
         this.move($entrance.direction)
         if (this.transitionCount == 0) {
             this.isEntering = false
             this.transitionCount = 40
             $game.isPaused = false
         }
+    }
+    updateHealthBar() {
+        var hpbar = document.getElementById('hpbar')
+        var percentage = Math.floor(this.health / this.maxHp * 100)
+        var newWidth = Math.floor(96 * percentage / 100)
+        hpbar.style.width = `${newWidth}px`
     }
 }
 
@@ -417,10 +414,10 @@ class Enemy extends GameObject {
         this.element.style.backgroundImage = "url('./assets/enemy.png')"
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
-        this.damage = 1
+        this.damage = Math.floor(1 + (randomize(1, 4) + $game.level * 0.1)) // increase base damage every 10 levels
         this.speed = 1
         this.direction = randomize(1, 4) * 2 
-        this.stepCount = 5
+        this.stepCount = 10
         this.stepFrame = 0
         this.dirChangeInterval = randomize(1, 3) * 60 // 1-3 sec
         this.dirChangeCount = this.dirChangeInterval
@@ -465,7 +462,7 @@ class Enemy extends GameObject {
         if ($player.downCount > 0) return
         $player.loseHealth(this.damage)
         $player.setImage('player-down')
-        $player.speed = 48
+        $player.speed = 12
         $player.move(this.direction)
         $player.speed = 1
         $player.downCount = 60
@@ -644,6 +641,7 @@ class Exit extends GameObject {
         if ($game.isPaused) return
         this.isOpening = true
         $player.isExiting = true
+        mainFadeout.style.opacity = 1 
         $game.isPaused = true
     }
 }
