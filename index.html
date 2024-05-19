@@ -30,28 +30,58 @@
         <p>The game will keep generating new levels indefinitely. 
           Your goal is to advance as deep into the dungeon as you can without dying.</p>
       </div>
-      <p style="text-decoration: underline;">In each level:</p>
-      <p>Head to the golden door</p>
-      <div id="exit"></div>
-      <p>Avoid monsters on the way!</p>
+      <div style="width: 350px; display: flex; justify-content: space-between; align-items: center;">
+        <p style="width: 300px;">Reach the golden door in order to advance to the next level</p>
+        <div id="exit" style="background-image: url('./assets/exit.png');"></div>
+      </div>
+      <h2>Avoid monsters</h2>
       <div style="display: flex; justify-content: center;">
-        <div class="enemy" style="background-image: url('./assets/bat.png');"></div>
-        <div class="enemy" style="background-image: url('./assets/slime.png');"></div>
-        <div class="enemy" style="background-image: url('./assets/orc.png');"></div>
-        <div class="enemy" style="background-image: url('./assets/skeleton.png');"></div>
+        <div class="monster" style="background-image: url('./assets/bat.png');"></div>
+        <div class="monster" style="background-image: url('./assets/slime.png');"></div>
+        <div class="monster" style="background-image: url('./assets/orc.png');"></div>
+        <div class="monster" style="background-image: url('./assets/skeleton.png');"></div>
       </div>
-      <div style="width: 400px">
-        <p>As you progress, you'll encounter more monsters, and they will deal greater damage.</p>
-        <p>Each monster successfully avoided will score you points according to its strength. 
-          Monsters who attacked you will score no points!</p>
+      <div style="width: 440px">
+        <p>As you progress, you'll encounter more monsters, and they will deal greater damage.
+          Each monster successfully avoided will score you points according to its strength. 
+          Monsters you took damage from will score no points!</p>
       </div>
+      <h2>Collect items</h2>
+      <table id="item-table"> 
+        <tbody>
+          <tr>
+            <td><div class="item float" style="background-image: url('./assets/potion-red.png');"></div></td>
+            <td class="item-desc">Restores 20% of your maximum health</td>
+            <td><div class="item float" style="background-image: url('./assets/shield.png');"></div></td>
+            <td class="item-desc">Grants protection from one attack</td>
+          </tr>
+          <tr>
+            <td><div class="item float" style="background-image: url('./assets/potion-green.png');"></div></td>
+            <td class="item-desc">Doubles your speed for the rest of the level</td>
+            <td><div class="item float" style="background-image: url('./assets/sword.png');"></div></td>
+            <td class="item-desc">Grants protection from one attack and kills the monster</td>
+          </tr>
+          <tr>
+            <td><div class="item float" style="background-image: url('./assets/potion-blue.png');"></div></td>
+            <td class="item-desc">Halves damage dealt by monsters for the rest of the level</td>
+            <td><div class="item float" style="background-image: url('./assets/bomb.png');"></div></td>
+            <td class="item-desc">Grants protection from one attack and kills all monsters nearby</td>
+          </tr>
+          <tr>
+            <td><div class="item float" style="background-image: url('./assets/potion-yellow.png');"></div></td>
+            <td class="item-desc">Doubles level score</td>
+            <td><div class="item float" style="background-image: url('./assets/hourglass.png');"></div></td>
+            <td class="item-desc">Freezes time, all monsters can't move for 10 seconds</td>
+          </tr>
+        </tbody>
+      </table>
       <button class="btn-backtotitle">Back to Title</button>
     </div>
 
     <!-- High Scores Scene -->
     <div class="scene" id="highscores">
       <h1>High Scores</h1>
-      <table>
+      <table id="score-table">
         <thead>
             <tr><th>Rank</th><th>Player</th><th>Level</th><th>Score</th></tr>
         </thead>
@@ -96,13 +126,37 @@
         <div class="bar" id="hpbar"></div>
         <div class="face" id="hud-bg"></div>
         <div class="face" id="hud-face"></div>
+        <div id="inventory">
+          <div class="inventory-row">
+            <div class="inventory" style="background-image: url('./assets/shield.png');"></div>
+            <span class="inv-num" id="inv-shields">0</span>
+          </div>
+          <div class="inventory-row">
+            <div class="inventory" style="background-image: url('./assets/sword.png');"></div>
+              <span class="inv-num" id="inv-swords">0</span>
+          </div>
+          <div class="inventory-row">
+            <div class="inventory" style="background-image: url('./assets/bomb.png');"></div>
+              <span class="inv-num" id="inv-bombs">0</span>
+          </div>
+        </div>
         <div id="hud-lvl">Level <span id="lvl"></span></div>
         <div id="hud-score">Score: <span id="score"></span></div>
         <div class="fadeout"></div>
         <audio id="main-bgm" src="./assets/main-bgm.ogg" loop></audio>
         <audio id="hurt1" src="./assets/hurt_01.ogg"></audio>
         <audio id="hurt2" src="./assets/hurt_04.ogg"></audio>
+        <audio id="enemyhurt" src="./assets/Down4.ogg"></audio>
         <audio id="door" src="./assets/door.ogg"></audio>
+        <audio id="heal" src="./assets/Heal3.ogg"></audio>
+        <audio id="speed" src="./assets/Run.ogg"></audio>
+        <audio id="durable" src="./assets/Up6.ogg"></audio>
+        <audio id="bonus" src="./assets/Chime2.ogg"></audio>
+        <audio id="collect" src="./assets/Equip2.ogg"></audio>
+        <audio id="shield" src="./assets/Parry.ogg"></audio>
+        <audio id="sword" src="./assets/Sword4.ogg"></audio>
+        <audio id="bomb" src="./assets/Explosion2.ogg"></audio>
+        <audio id="time" src="./assets/Magic3.ogg"></audio>
       </div>
 
     <!-- Game Over Scene -->

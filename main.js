@@ -161,6 +161,7 @@ function updateHighscores() {
 function gameTick() {
     $game.update()
     for (let enemy of $game.enemies) enemy.update()
+    for (let item of $game.items) item.update()
     $player.update()
     $exit.update()
     $entrance.update()
@@ -179,6 +180,10 @@ function randomize(min, max) {
     return (Math.floor(Math.random() * (max - min + 1))) + min
 }
 
+function randomChance(percentage) {
+    return Math.random() * 100 < percentage
+}
+
 const enemyData = {
     'bat': {minLvl: 1, minPower: 1, maxPower: 3, points: 1},
     'slime': {minLvl: 2, minPower: 3, maxPower: 6, points: 2},
@@ -189,12 +194,29 @@ const enemyData = {
     'minotaur': {minLvl: 30, minPower: 21, maxPower: 25, points: 25},
 }
 
+const itemData = {
+    'potion-red': {minLvl: 2, chance: 25},
+    'potion-green': {minLvl: 5, chance: 22},
+    'potion-blue': {minLvl: 10, chance: 20},
+    'potion-yellow': {minLvl: 2, chance: 10},
+    'shield': {minLvl: 12, chance: 20},
+    //'shield': {minLvl: 1, chance: 100},
+    'sword': {minLvl: 12, chance: 17},
+    //'sword': {minLvl: 1, chance: 100},
+    'bomb': {minLvl: 15, chance: 12},
+    //'bomb': {minLvl: 1, chance: 100},
+    'hourglass': {minLvl: 15, chance: 10},
+}
+
 class GameSession {
     constructor() {
         this.score = 0
         this.level = 0
+        this.decorations = []
         this.obstacles = []
         this.enemies = []
+        this.items = []
+        this.timeCount = 0
     }
     startLevel(levelNumber) {
         if (levelNumber > 1) this.updateScore()
@@ -212,6 +234,8 @@ class GameSession {
             this.setNextExit()
             this.clearPreviousLevel()
         }
+        this.createDecorations()
+        this.createItems(levelNumber)
         this.createEnemies(levelNumber)
         this.createObstacles()
         this.level = levelNumber
@@ -237,9 +261,39 @@ class GameSession {
         $exit.animFrame = 0
     }
     clearPreviousLevel() {
-        for (let obj of this.enemies.concat(this.obstacles)) obj.removeElement()
-            this.obstacles = []
-            this.enemies = []
+        for (let obj of this.enemies.concat(this.obstacles, this.decorations, this.items)) obj.removeElement()
+        this.decorations = []
+        this.obstacles = []
+        this.enemies = []
+        this.items = []
+        let elements = document.querySelectorAll('.enemy'); // failsafe in case some elements remained
+        elements.forEach(e => e.remove()); 
+    }
+    createDecorations() {
+        var decorTypes = ['crack','gravel','gravel2']
+        for (let decorType of decorTypes) {
+            let decorCount = randomize(1,5)
+            for (let spawned = 0, failed = 0; spawned < decorCount && failed < 100;) {
+                let x = this.spawnX(48)
+                let y = this.spawnY(48)
+                if (!this.isAreaFree(x, y, 48, 48, 0)) {
+                    failed++
+                    continue
+                }
+                this.decorations.push(new Decoration(x, y, decorType))
+                spawned++
+            }
+        }
+    }
+    createItems(levelNumber) {
+        let itemList = Object.keys(itemData).filter(i => itemData[i].minLvl <= levelNumber)
+        for (let item of itemList) {
+            if (!randomChance(itemData[item].chance)) continue
+            let x = this.spawnX(48)
+            let y = this.spawnY(48)
+            if (!this.isAreaFreeOfItems(x, y, 48, 48)) continue
+            this.items.push(new Item(x, y, item))
+        }
     }
     createEnemies(levelNumber) {
         var enemiesCount = 1 + Math.floor(levelNumber / 3) // 1 enemy added every 3 levels
@@ -257,7 +311,7 @@ class GameSession {
         }
     }
     createObstacles() {
-        var obstacleTypes = ['pillar-H','pillar-broken-H','pillar-broken','rubble','hole']
+        var obstacleTypes = ['pillar-H','pillar-broken-H','pillar-broken','rubble','rubble2','hole']
         for (let obstType of obstacleTypes) {
             let obstacleCount = randomize(1,3)
             for (let spawned = 0, failed = 0; spawned < obstacleCount && failed < 100;) {
@@ -286,10 +340,19 @@ class GameSession {
         var objects = this.getAllObjects()
         if (this.isBlockingDoor(x, y, w, h, $entrance) || this.isBlockingDoor(x, y, w, h, $exit)) return false
         return !objects.some(obj => {
-            return y - padding < obj.y + obj.height 
-                && y + h + padding > obj.y 
-                && x - padding < obj.x + obj.width 
-                && x + w + padding > obj.x
+            let spacing = obj instanceof Decoration || obj instanceof Item ? 0 : padding
+            return y - spacing < obj.y + obj.height 
+                && y + h + spacing > obj.y 
+                && x - spacing < obj.x + obj.width 
+                && x + w + spacing > obj.x
+        })
+    }
+    isAreaFreeOfItems(x, y, w, h) {
+        return !this.items.some(obj => {
+            return y < obj.y + obj.height 
+                && y + h > obj.y 
+                && x < obj.x + obj.width 
+                && x + w > obj.x
         })
     }
     isBlockingDoor(x, y, w, h, door) {
@@ -298,10 +361,10 @@ class GameSession {
             && x < doorPadding.x + doorPadding.width && x + w > doorPadding.x
     }
     update() {
-
+        if (this.timeCount > 0) this.timeCount --
     }
     getAllObjects() {
-        var objects = this.enemies.concat(this.obstacles)
+        var objects = this.enemies.concat(this.obstacles, this.decorations, this.items)
         objects.push($entrance)
         objects.push($exit)
         objects.push($player)
@@ -311,7 +374,13 @@ class GameSession {
         for (let obj of this.getAllObjects()) obj.removeElement()
     }
     updateScore() {
-        for (let enemy of this.enemies) this.score += enemy.points
+        var levelScore = 0
+        for (let enemy of this.enemies) levelScore += enemy.points
+        if (this.doubleScore) {
+            levelScore *= 2
+            this.doubleScore = false
+        }
+        this.score += levelScore
         document.getElementById('score').textContent = this.score
     }
     updateHealthBar() {
@@ -319,6 +388,11 @@ class GameSession {
         var percentage = Math.floor($player.health / $player.maxHp * 100)
         var newWidth = Math.floor(96 * percentage / 100)
         hpbar.style.width = `${newWidth}px`
+    }
+    updateInventory() {
+        document.getElementById('inv-shields').textContent = $player.shields
+        document.getElementById('inv-swords').textContent = $player.swords
+        document.getElementById('inv-bombs').textContent = $player.bombs
     }
     isKeyDown(keyName) {
         return KEYS[keyName]
@@ -434,6 +508,9 @@ class Player extends GameObject {
         this.stepFrame = 0
         this.maxHp = 50
         this.health = this.maxHp
+        this.shields = 0
+        this.swords = 0
+        this.bombs = 0
         this.isExiting = false
         this.isEntering = false
         this.transitionCount = 40
@@ -529,6 +606,7 @@ class Player extends GameObject {
         }
     }
     takeDamage(damage) {
+        if (this.isDurable) damage /= 2
         this.health -= damage
         $game.updateHealthBar()
         playSound('hurt'+randomize(1,2))
@@ -541,6 +619,35 @@ class Player extends GameObject {
         setTimeout(() => {damageOverlay.remove();}, 1000);
         if (this.health <= 0) endGame()
     }
+    collectItem(item) {
+        playSound('collect',0.5)
+        switch(item.itemType) {
+            case 'shield': this.shields ++; break
+            case 'sword': this.swords ++; break
+            case 'bomb': this.bombs ++; break
+        }
+        item.remove()
+        $game.updateInventory()
+    }
+    parry() {
+        playSound('shield')
+        $player.shields --
+        $player.safeCount = 60
+        $game.updateInventory()
+    }
+    slash() {
+        playSound('sword')
+        $player.swords --
+        $game.updateInventory()
+    }
+    detonate() {
+        playSound('bomb')
+        $player.bombs --
+        var bombArea = {x: this.x - 36, y: this.y - 36, width: 120, height: 120}
+        var affectedMonsters = $game.enemies.filter(e => e.isCollided(bombArea))
+        for (let e of affectedMonsters) e.die()
+        $game.updateInventory()
+    }
 }
 
 class Enemy extends GameObject {
@@ -549,6 +656,7 @@ class Enemy extends GameObject {
         this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
+        this.element.classList.add('enemy')
         var data = enemyData[fileName]
         this.power = randomize(data.minPower, data.maxPower) + Math.floor($game.level / 5) // increase base damage every 5 levels
         this.points = data.points
@@ -560,6 +668,7 @@ class Enemy extends GameObject {
         this.dirChangeCount = this.dirChangeInterval
     }
     move(direction) {
+        if ($game.timeCount > 0) return // time frozen
         this.direction = direction
         this.updateStep()
         if (!this.canMove(direction)) return
@@ -586,12 +695,14 @@ class Enemy extends GameObject {
         this.dirChangeCount = this.dirChangeInterval
     }
     update() {
+        if (this.isDying) return
         this.updateDirection()
         this.move(this.direction)
         super.update()
         if (this.isCollided($player)) this.attack()
     }
     updateDirection() {
+        if ($game.timeCount > 0) return // time frozen
         this.dirChangeCount --
         if (this.dirChangeCount == 0) this.setDirection()
     }
@@ -600,17 +711,39 @@ class Enemy extends GameObject {
         if ($player.safeCount > 0) return
         if ($player.isExiting) return
         if ($player.isEntering) return
+        if ($player.bombs > 0) {
+            $player.detonate()
+            return
+        }
+        if ($player.swords > 0) {
+            $player.slash()
+            this.die()
+            return
+        }
+        if ($player.shields > 0) {
+            $player.parry()
+            this.setDirection(reverseDir(this.direction))
+            return
+        }
         $player.takeDamage(this.power)
-        $player.speed = 24
+        $player.speed = 12
         $player.move(this.direction)
-        $player.speed = 1
+        $player.speed = $player.isFast ? 2 : 1
         this.setDirection(reverseDir(this.direction))
         this.points = 0
+    }
+    die() {
+        this.isDying = true
+        setTimeout(()=>{
+            playSound('enemyhurt')
+            this.element.classList.add('dying')
+            setTimeout(()=>{this.remove()},1000)
+        },500)
     }
     remove() {
         this.removeElement()
         var index = $game.enemies.indexOf(this)
-        $game.enemies.splice(index, 1)
+        if (index != -1) $game.enemies.splice(index, 1)
     }
     updateImage() {
         var step
@@ -719,8 +852,8 @@ class Exit extends GameObject {
             case 4: return mainScene.clientWidth - this.width
             case 8:
             case 2: 
-                var max = mainScene.clientWidth - this.width*3
-                var min = this.width*2
+                var max = mainScene.clientWidth - this.width*3.5
+                var min = this.width*2.5
                 return randomize(min, max)
         }
     }
@@ -730,8 +863,8 @@ class Exit extends GameObject {
             case 8: return mainScene.clientHeight - this.height
             case 6:
             case 4: 
-                var max = mainScene.clientHeight - this.height*3
-                var min = this.height*2
+                var max = mainScene.clientHeight - this.height*3.5
+                var min = this.height*2.5
                 return randomize(min, max)
         }
     }
@@ -781,8 +914,70 @@ class Exit extends GameObject {
         this.isOpening = true
         playSound('door',0.5)
         $player.isExiting = true
+        $player.isFast = false // in case player got green potion
+        $player.speed = 1 
+        $player.isDurable = false // in case player got blue potion
+        $game.timeCount = 0
         mainFadeout.style.opacity = 1 
         $game.isPaused = true
+    }
+}
+
+class Item extends GameObject {
+    constructor(x, y, fileName) {
+        super(x, y, 48, 48)
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
+        this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+        this.element.style.zIndex = -1
+        this.itemType = fileName
+        this.element.classList.add('float')
+        this.updatePosition()
+    }
+    update() {
+        if ($player.downCount > 0) return
+        if ($player.isExiting) return
+        if ($player.isEntering) return
+        if (!this.isCollided($player)) return
+        if (['shield','sword','bomb'].includes(this.itemType)) $player.collectItem(this)
+        else this.applyEffect()
+    }
+    isCollided(obj) {
+        var realX = this.x + 8
+        var realY = this.y + 8
+        var realWidth = 32
+        var realHeight = 32
+        return realY < obj.y + obj.height && realY + realHeight > obj.y 
+            && realX < obj.x + obj.width && realX + realWidth > obj.x
+    }
+    applyEffect() {
+        switch(this.itemType) {
+            case 'potion-red': // heal 10 hp
+                if ($player.health == $player.maxHp) return
+                playSound('heal')
+                $player.health += 10
+                if ($player.health > $player.maxHp) $player.health = $player.maxHp
+                $game.updateHealthBar(); break
+            case 'potion-green': // double speed
+                playSound('speed')
+                $player.isFast = true
+                $player.speed = 2; break
+            case 'potion-blue': // halve damage
+                playSound('durable')
+                $player.isDurable = true; break
+            case 'potion-yellow': // double score
+                playSound('bonus')
+                $game.doubleScore = true; break
+            case 'hourglass': // freeze time for 10 seconds
+                playSound('time',0.5)
+                $game.timeCount = 400; break
+        }
+        this.remove()
+    }
+    remove() {
+        this.removeElement()
+        var index = $game.items.indexOf(this)
+        if (index != -1) $game.items.splice(index, 1)
     }
 }
 
@@ -808,6 +1003,17 @@ class Obstacle extends GameObject {
     remove() {
         this.removeElement()
         var index = $game.obstacles.indexOf(this)
-        $game.obstacles.splice(index, 1)
+        if (index != -1) $game.obstacles.splice(index, 1)
+    }
+}
+
+class Decoration extends GameObject {
+    constructor(x, y, fileName) {
+        super(x, y, 48, 48)
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
+        this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+        this.element.style.zIndex = -1
+        this.updatePosition()
     }
 }

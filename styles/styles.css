@@ -44,10 +44,6 @@ button:active {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-} 
-
-audio {
-    transition: volume 3s;
 }
 
 .fadeout {
@@ -59,22 +55,17 @@ audio {
     transition: opacity 680ms;
 }
 
-.damage {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    animation: damage 1s ease-out forwards;
+.float {
+    animation: float infinite 1s ease-in-out;
 }
 
-@keyframes damage {
-    0% { opacity: 1; }
-    50% { opacity: 0; }
-    100% { opacity: 1; }
+@keyframes float {
+    0% {background-position-y: 0px}
+    50% {background-position-y: -8px}
+    100% {background-position-y: 0px}
 }
 
+/* Title Scene */
 #titleScene {
     display: flex;
 }
@@ -89,23 +80,36 @@ audio {
     font-weight: bold;
 }
 
+/* Instructions Scene */
 #instructions h1 {
-    font-size: 50px;
+    font-size: 40px;
+    color: rgb(233, 162, 132);
+    text-align: center;
+}
+
+#instructions h2 {
+    margin-top: 15px;
+    font-size: 20px;
     color: rgb(233, 162, 132);
     text-align: center;
 }
 
 #instructions p {
     margin-top: 15px;
-    font-size: 20px;
+    font-size: 17px;
     color: rgb(233, 162, 132);
     text-align: center;
 }
+
+#instructions button {
+    margin-top: 0px;
+}
+
 #exit {
+    display: block;
     margin-top: 15px;
     width: 60px;
     height: 60px;
-    background-image: url('../assets/exit.png');
     animation: door infinite 3s steps(1);
 }
 
@@ -116,20 +120,39 @@ audio {
     75% {background-position-x: 60px}
 }
 
-.enemy {
+.monster {
     margin-top: 15px;
     width: 48px;
     height: 48px;
-    animation: enemy infinite 1s steps(1);
+    animation: monster infinite 1s steps(1);
 }
 
-@keyframes enemy {
+@keyframes monster {
     0% {background-position-x: 0px}
     25% {background-position-x: 96px}
     50% {background-position-x: 48px}
     75% {background-position-x: 96px}
 }
 
+#item-table {
+    margin-top: 15px;
+}
+
+#item-table td {
+    color: rgb(233, 162, 132);
+    vertical-align: middle;
+}
+
+.item {
+    width: 48px;
+    height: 48px;
+}
+
+.item-desc {
+    width: 210px;
+}
+
+/* High Scores Scene */
 #highscores {
     color: rgb(233, 162, 132);
 }
@@ -140,13 +163,7 @@ audio {
     text-align: center;
 }
 
-#score-headers {
-    width: 350px;
-    display: flex; 
-    justify-content: space-around;
-}
-
-table {
+#score-table {
     margin-top: 20px;
     font-size: 20px;
     color: rgb(233, 162, 132);
@@ -155,14 +172,15 @@ table {
     border-spacing: 15px;
 }
 
-thead {
+#score-table thead {
     text-decoration: underline;
 }
 
-th, td {
+#score-table th, #score-table td {
     padding: 0px 15px; /* Increase horizontal padding */
 }
 
+/* Main Scene */
 #main {
     position: relative;
     background-image: none;
@@ -212,6 +230,37 @@ th, td {
     transition: width 1s
 }
 
+#inventory {
+    position: absolute;
+    top: 55px;
+    right: 3px;
+    width: 40px; 
+    height: 96px; 
+    background-color: rgba(233, 162, 132, 80%);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.inventory-row {
+    display: flex; 
+    align-items: center;
+}
+
+.inventory {
+    width: 32px;
+    height: 32px;
+    background-size: contain;
+    transform: translate(-10%, 0%);
+}
+
+.inv-num {
+    width: 8px;
+    text-align: center;
+    transform: translate(-65%, 0%);
+}
+
 #hud-lvl {
     position: absolute;
     top: 5px;
@@ -220,6 +269,7 @@ th, td {
     background-color: rgba(233, 162, 132, 80%);
     border-radius: 10px;
     padding: 5px;
+    z-index: 1000;
 }
 
 #hud-score {
@@ -232,12 +282,47 @@ th, td {
     padding: 5px;
 }
 
+.damage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    animation: damage 1s ease-out forwards;
+}
+
+@keyframes damage {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.dying {
+    animation: dying 1s steps(10);
+}
+
+@keyframes dying {
+    0% { opacity: 1; }
+    10% { opacity: 0; }
+    20% { opacity: 1; }
+    30% { opacity: 0; }
+    40% { opacity: 1; }
+    50% { opacity: 0; }
+    60% { opacity: 1; }
+    70% { opacity: 0; }
+    80% { opacity: 1; }
+    90% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
 #gamespace {
     background-image: url('../assets/floor-texture.png');
     width: 659px;
     height: 570px;
     border-width: 1px;
     margin: 50px 50px;
+    z-index: -1;
 }
 
 #border-top {
@@ -275,6 +360,7 @@ th, td {
     height: 100%;
 }
 
+/* Game Over Scene */
 #gameoverScene {
     position: relative;
 }
