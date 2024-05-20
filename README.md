@@ -65,6 +65,6 @@ The game includes 5 distinct views (scenes):
 
 ## Links
 
-- [Slides Link](http://slides.com)
+- [Slides Link](https://slides.com/amirvaknin/deck/fullscreen)
 - [Github repository Link](https://github.com/AmVa93n/EndlessDungeon)
 - [Deployment Link](https://github.com/AmVa93n/EndlessDungeon/deployments)
