@@ -1,4 +1,4 @@
-var mainScene, titleScene, howtoScene, scoresScene, gameoverScene, gameSpace, mainFadeout
+var mainScene, titleScene, howtoScene, scoresScene, gameoverScene, gameSpace, mainFadeout, sepiaLayer
 var $scene = null // reference to current scene displayed on screen
 var $game, $player, $entrance, $exit = null // reference to current instances of each class in the game session
 const KEYS = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false}
@@ -11,6 +11,7 @@ window.onload = function() {
     gameoverScene = document.getElementById('gameoverScene')
     gameSpace = document.getElementById('gamespace')
     mainFadeout = document.querySelector('#main .fadeout')
+    sepiaLayer = document.querySelector('.sepia-layer')
     setupListeners()
     switchScene(titleScene)
 }
@@ -132,18 +133,20 @@ function fadoutBgm(id) {
 
 function submitScore() {
     document.getElementById('submit-box').style.display = 'none'
-    var name = document.getElementById('submit-name').value
-    localStorage.setItem(name, JSON.stringify({
+    localStorage.setItem(Math.random(), JSON.stringify({
+        name: document.getElementById('submit-name').value, 
         level: document.getElementById('final-level').textContent, 
         score: document.getElementById('final-score').textContent
     }));
+    updateHighscores()
+    switchScene(scoresScene)
 }
 
 function updateHighscores() {
-    var players = Object.keys(localStorage)
-    var data = players.map(p => {
-        let parsed = JSON.parse(localStorage.getItem(p))
-        return {name: p, level: parsed.level, score: parsed.score}
+    var scoreList = Object.keys(localStorage)
+    var data = scoreList.map(scoreId => {
+        let parsed = JSON.parse(localStorage.getItem(scoreId))
+        return {name: parsed.name, level: parsed.level, score: parsed.score}
     })
     data.sort((a, b) => b.score - a.score);
     var rowName = [...document.querySelectorAll('.hs-name')]
@@ -195,17 +198,18 @@ const enemyData = {
 }
 
 const itemData = {
-    'potion-red': {minLvl: 2, chance: 25},
-    'potion-green': {minLvl: 5, chance: 22},
-    'potion-blue': {minLvl: 10, chance: 20},
+    'potion-red': {minLvl: 2, chance: 35},
+    'potion-green': {minLvl: 4, chance: 30},
+    'potion-blue': {minLvl: 6, chance: 25},
     'potion-yellow': {minLvl: 2, chance: 10},
-    'shield': {minLvl: 12, chance: 20},
-    //'shield': {minLvl: 1, chance: 100},
-    'sword': {minLvl: 12, chance: 17},
-    //'sword': {minLvl: 1, chance: 100},
-    'bomb': {minLvl: 15, chance: 12},
-    //'bomb': {minLvl: 1, chance: 100},
-    'hourglass': {minLvl: 15, chance: 10},
+    //'shield': {minLvl: 10, chance: 22},
+    //'sword': {minLvl: 10, chance: 20},
+    //'bomb': {minLvl: 12, chance: 18},
+    //'hourglass': {minLvl: 15, chance: 15},
+    'shield': {minLvl: 1, chance: 100},
+    'sword': {minLvl: 1, chance: 100},
+    'bomb': {minLvl: 1, chance: 100},
+    'hourglass': {minLvl: 1, chance: 100},
 }
 
 class GameSession {
@@ -296,7 +300,7 @@ class GameSession {
         }
     }
     createEnemies(levelNumber) {
-        var enemiesCount = 1 + Math.floor(levelNumber / 3) // 1 enemy added every 3 levels
+        var enemiesCount = 2 + Math.floor(levelNumber / 4) // 1 enemy added every 4 levels (minimum 2)
         for (let spawned = 0, failed = 0; spawned < enemiesCount && failed < 100;) {
             let enemyList = Object.keys(enemyData).filter(e => enemyData[e].minLvl <= levelNumber)
             let enemyType = enemyList[randomize(0, enemyList.length-1)]
@@ -308,6 +312,7 @@ class GameSession {
             }
             this.enemies.push(new Enemy(x, y, enemyType))
             spawned++
+            failed = 0
         }
     }
     createObstacles() {
@@ -323,6 +328,7 @@ class GameSession {
                 }
                 this.obstacles.push(new Obstacle(x, y, obstType))
                 spawned++
+                failed = 0
             }
         }
     }
@@ -361,7 +367,10 @@ class GameSession {
             && x < doorPadding.x + doorPadding.width && x + w > doorPadding.x
     }
     update() {
-        if (this.timeCount > 0) this.timeCount --
+        if (this.timeCount > 0) {
+            this.timeCount --
+            if (this.timeCount == 0) Item.unfreezeTime()
+        }
     }
     getAllObjects() {
         var objects = this.enemies.concat(this.obstacles, this.decorations, this.items)
@@ -452,7 +461,7 @@ class GameObject {
             && this.x < obj.x + obj.width && this.x + this.width > obj.x
     }
     wouldCollide(direction, obj) {
-        var step = direction == 8 || direction == 4 ? - 1 : 1
+        var step = direction == 8 || direction == 4 ? -1 : 1
         var collision = this.y + step < obj.y + obj.height &&
                         this.y + this.height + step > obj.y &&
                         this.x + step < obj.x + obj.width &&
@@ -620,33 +629,46 @@ class Player extends GameObject {
         if (this.health <= 0) endGame()
     }
     collectItem(item) {
+        if (item.element.classList.contains('item-collected')) return
         playSound('collect',0.5)
         switch(item.itemType) {
             case 'shield': this.shields ++; break
             case 'sword': this.swords ++; break
             case 'bomb': this.bombs ++; break
         }
-        item.remove()
+        item.element.classList.add('item-collected')
+        item.element.style.opacity = 0
+        setTimeout(() => {item.remove()}, 500)
         $game.updateInventory()
     }
     parry() {
         playSound('shield')
-        $player.shields --
-        $player.safeCount = 60
+        this.shields --
+        this.useItem('shield')
+        this.safeCount = 60
         $game.updateInventory()
     }
     slash() {
         playSound('sword')
-        $player.swords --
+        this.swords --
+        this.useItem('sword')
         $game.updateInventory()
     }
     detonate() {
         playSound('bomb')
-        $player.bombs --
+        this.bombs --
+        this.useItem('bomb')
         var bombArea = {x: this.x - 36, y: this.y - 36, width: 120, height: 120}
         var affectedMonsters = $game.enemies.filter(e => e.isCollided(bombArea))
         for (let e of affectedMonsters) e.die()
         $game.updateInventory()
+    }
+    useItem(itemType) {
+        let itemUsed = document.createElement('img');
+        itemUsed.src = `./assets/${itemType}.png`
+        itemUsed.classList.add('item-used');
+        this.element.appendChild(itemUsed);
+        setTimeout(() => {itemUsed.remove();}, 1000);
     }
 }
 
@@ -711,8 +733,9 @@ class Enemy extends GameObject {
         if ($player.safeCount > 0) return
         if ($player.isExiting) return
         if ($player.isEntering) return
-        if ($player.bombs > 0) {
-            $player.detonate()
+        if ($player.shields > 0) {
+            $player.parry()
+            this.setDirection(reverseDir(this.direction))
             return
         }
         if ($player.swords > 0) {
@@ -720,9 +743,8 @@ class Enemy extends GameObject {
             this.die()
             return
         }
-        if ($player.shields > 0) {
-            $player.parry()
-            this.setDirection(reverseDir(this.direction))
+        if ($player.bombs > 0) {
+            $player.detonate()
             return
         }
         $player.takeDamage(this.power)
@@ -917,7 +939,7 @@ class Exit extends GameObject {
         $player.isFast = false // in case player got green potion
         $player.speed = 1 
         $player.isDurable = false // in case player got blue potion
-        $game.timeCount = 0
+        Item.unfreezeTime()// unfreeze time
         mainFadeout.style.opacity = 1 
         $game.isPaused = true
     }
@@ -929,7 +951,7 @@ class Item extends GameObject {
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
         this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
-        this.element.style.zIndex = -1
+        this.element.style.zIndex = 800
         this.itemType = fileName
         this.element.classList.add('float')
         this.updatePosition()
@@ -951,6 +973,7 @@ class Item extends GameObject {
             && realX < obj.x + obj.width && realX + realWidth > obj.x
     }
     applyEffect() {
+        if (this.element.classList.contains('item-collected')) return
         switch(this.itemType) {
             case 'potion-red': // heal 10 hp
                 if ($player.health == $player.maxHp) return
@@ -969,10 +992,24 @@ class Item extends GameObject {
                 playSound('bonus')
                 $game.doubleScore = true; break
             case 'hourglass': // freeze time for 10 seconds
-                playSound('time',0.5)
-                $game.timeCount = 400; break
+                this.freezeTime(); break
         }
-        this.remove()
+        this.element.classList.add('item-collected')
+        this.element.style.opacity = 0
+        setTimeout(() => {this.remove()}, 500)
+    }
+    freezeTime() {
+        playSound('time',0.5)
+        sepiaLayer.style.top = `${this.y}px`
+        sepiaLayer.style.left = `${this.x}px`
+        sepiaLayer.classList.add('freeze-time');
+        for (let item of $game.items) item.element.classList.remove('float')
+        $game.timeCount = 430
+    }
+    static unfreezeTime() {
+        $game.timeCount = 0
+        sepiaLayer.classList.remove('freeze-time')
+        for (let item of $game.items) item.element.classList.add('float')
     }
     remove() {
         this.removeElement()
@@ -987,13 +1024,15 @@ class Obstacle extends GameObject {
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
         if (fileName.includes('-H')) { // 48x96 pixels
-            this.img = document.createElement('img')
-            this.img.src = `./assets/${fileName}.png`
-            this.img.width = 48
-            this.img.height = 96
-            this.img.style.maxHeight = '200%'
+            this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+            this.element.style.backgroundPosition = `0px 48px`
+            this.img = document.createElement('div')
+            this.img.style.backgroundImage = `url('./assets/${fileName}.png')`
+            this.img.style.width = '48px'
+            this.img.style.height = '48px'
             this.img.style.position = 'absolute'
             this.img.style.top = '-100%'
+            this.img.style.zIndex = 900
             this.element.appendChild(this.img)
         } else { // 48x48 pixels
             this.element.style.backgroundImage = `url('./assets/${fileName}.png')`

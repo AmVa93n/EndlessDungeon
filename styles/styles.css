@@ -44,6 +44,7 @@ button:active {
     align-items: center;
     justify-content: center;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .fadeout {
@@ -280,6 +281,7 @@ button:active {
     background-color: rgba(233, 162, 132, 80%);
     border-radius: 10px;
     padding: 5px;
+    z-index: 1000;
 }
 
 .damage {
@@ -298,6 +300,25 @@ button:active {
     100% { opacity: 1; }
 }
 
+.item-collected {
+    transition: opacity 0.5s
+}
+
+.item-used {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 800;
+    animation: item-used 1s linear forwards;
+}
+
+@keyframes item-used {
+    75% {opacity: 1; top: -32px;}
+    100% {opacity: 0; top: -32px;}
+}
+
 .dying {
     animation: dying 1s steps(10);
 }
@@ -314,6 +335,27 @@ button:active {
     80% { opacity: 1; }
     90% { opacity: 0; }
     100% { opacity: 1; }
+}
+
+.sepia-layer {
+    display: none;
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    z-index: 950;
+    border-radius: 50%;
+    background-color: rgba(112, 66, 20, 0.5); /* Sepia-like color */
+    mix-blend-mode: color;
+}
+
+.freeze-time {
+    display: block;
+    animation: freeze-time 1s linear forwards;
+}
+
+@keyframes freeze-time {
+    0% {transform: scale(1);}
+    100% {transform: scale(100);}
 }
 
 #gamespace {
