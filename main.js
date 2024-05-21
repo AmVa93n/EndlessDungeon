@@ -12,35 +12,49 @@ window.onload = function() {
     gameSpace = document.getElementById('gamespace')
     mainFadeout = document.querySelector('#main .fadeout')
     sepiaLayer = document.querySelector('.sepia-layer')
-    setupListeners()
+    setupClickListeners()
+    setupKeyboardListeners()
     switchScene(titleScene)
 }
 
-function setupListeners() {
-    let btnstart = document.querySelectorAll('.btn-start')
-    let btntotitle = document.querySelectorAll('.btn-backtotitle')
-    btnstart.forEach(btn => {btn.addEventListener('click', () =>
+function setupClickListeners() {
+    let btnstart = document.querySelectorAll('.btn-start') // start / restart
+    btnstart.forEach(btn => {
+        btn.addEventListener('click', () => {
+        playSound('cursor',0.5)
         setTimeout(newGame, 300)
-    )}) 
-    document.getElementById('btn-instructions').addEventListener('click', () =>
-        setTimeout(()=>{switchScene(howtoScene)}, 300)
-    )
-    document.getElementById('btn-highscores').addEventListener('click', () =>
-        setTimeout(()=>{
-            updateHighscores()
-            switchScene(scoresScene)
-        }, 300)
-    )
-    btntotitle.forEach(btn => {btn.addEventListener('click', () =>
+        })
+    })
+    let btntotitle = document.querySelectorAll('.btn-backtotitle') // back to title
+    btntotitle.forEach(btn => {btn.addEventListener('click', () => {
+        playSound('cursor',0.5)
         setTimeout(()=>{switchScene(titleScene)}, 300)
-    )})
-    document.getElementById('btn-submit-score').addEventListener('click', () =>
+        })
+    })
+    document.getElementById('btn-instructions').addEventListener('click', () => { // how to play
+        playSound('cursor',0.5)
+        setTimeout(()=>{switchScene(howtoScene)}, 300)
+    })
+    document.getElementById('btn-highscores').addEventListener('click', () => { // highscores
+        playSound('cursor',0.5)
+        updateHighscores()
+        setTimeout(()=>{switchScene(scoresScene)}, 300)
+    })
+    document.getElementById('btn-submit-score').addEventListener('click', () => { // submit score
+        playSound('cursor',0.5)
         setTimeout(()=>{document.getElementById('submit-box').style.display = 'block'}, 300)
-    )
-    document.getElementById('btn-submit').addEventListener('click', submitScore)
-    document.getElementById('btn-cancel').addEventListener('click', () =>
+    }) 
+    document.getElementById('btn-submit').addEventListener('click', () => { // confirm submit
+        playSound('cursor',0.5)
+        submitScore()
+    })
+    document.getElementById('btn-cancel').addEventListener('click', () => { // cancel submit
+        playSound('cursor',0.5)
         document.getElementById('submit-box').style.display = 'none'
-    )
+    })
+}
+
+function setupKeyboardListeners() {
     window.addEventListener("keydown", () => {
         if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
         KEYS[event.key] = true
@@ -90,7 +104,6 @@ function endGame() {
         $game.removeAll()
         switchScene(gameoverScene)
         document.querySelector('#gameoverScene .fadeout').style.opacity = 0
-        setTimeout(()=>{document.querySelector('#gameoverScene .fadeout').style.zIndex = -1},680)
     },680)
     document.getElementById('final-score').textContent = $game.score
     document.getElementById('final-level').textContent = $game.level
@@ -202,14 +215,11 @@ const itemData = {
     'potion-green': {minLvl: 4, chance: 30},
     'potion-blue': {minLvl: 6, chance: 25},
     'potion-yellow': {minLvl: 2, chance: 10},
-    //'shield': {minLvl: 10, chance: 22},
-    //'sword': {minLvl: 10, chance: 20},
-    //'bomb': {minLvl: 12, chance: 18},
-    //'hourglass': {minLvl: 15, chance: 15},
-    'shield': {minLvl: 1, chance: 100},
-    'sword': {minLvl: 1, chance: 100},
-    'bomb': {minLvl: 1, chance: 100},
-    'hourglass': {minLvl: 1, chance: 100},
+    'shield': {minLvl: 10, chance: 22},
+    'sword': {minLvl: 10, chance: 20},
+    'bomb': {minLvl: 12, chance: 18},
+    'hourglass': {minLvl: 15, chance: 15},
+    //'shield': {minLvl: 1, chance: 100},'sword': {minLvl: 1, chance: 100},'bomb': {minLvl: 1, chance: 100},'hourglass': {minLvl: 1, chance: 100},
 }
 
 class GameSession {

@@ -14,13 +14,13 @@
 <body>
     <!-- Title Scene -->
     <div class="scene" id="titleScene">
-        <img id="title" src="./assets/title.png"></img>
+        <img class="title-anim" src="./assets/title.png"></img>
         <p>How long can <span>you</span> survive?</p>
         <button class="btn-start">Start Adventure</button>
         <button id="btn-instructions">How to Play?</button>
         <button id="btn-highscores">High Scores</button>
         <audio id="title-bgm" src="./assets/title-bgm.ogg" loop></audio>
-        <script></script>
+        <audio id="cursor" src="./assets/Cursor1.ogg"></audio>
     </div>
 
     <!-- Instructions Scene -->
@@ -162,9 +162,10 @@
 
     <!-- Game Over Scene -->
     <div class="scene" id="gameoverScene">
-        <img id="gameover" src="./assets/gameover.png"></img>
-        <p>Level reached: <span id="final-level" style="color: white;">0</span></p>
+        <img class="title-anim" src="./assets/gameover.png"></img>
+        <p>Level: <span id="final-level" style="color: white;">0</span></p>
         <p>Score: <span id="final-score" style="color: white;">0</span></p>
+        <div id="player-down"></div>
         <button class="btn-start">Play Again</button>
         <button id="btn-submit-score">Submit Score</button>
         <button class="btn-backtotitle">Back to Title</button>

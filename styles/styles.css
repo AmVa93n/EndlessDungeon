@@ -47,12 +47,23 @@ button:active {
     overflow: hidden;
 }
 
+.title-anim {
+    animation: title infinite 3s ease-in-out;
+}
+
+@keyframes title {
+    0% {transform: scale(1);}
+    50% {transform: scale(1.1);}
+    100% {transform: scale(1);}
+}
+
 .fadeout {
     background-color: black;
     width: 760px;
     height: 671px;
     position: absolute;
     z-index: 9999;
+    pointer-events: none;
     transition: opacity 680ms;
 }
 
@@ -73,7 +84,7 @@ button:active {
 
 #titleScene p {
     margin-top: 20px;
-    font-size: 30px;
+    font-size: 25px;
     color: rgb(233, 162, 132);
 }
 
@@ -405,6 +416,13 @@ button:active {
 /* Game Over Scene */
 #gameoverScene {
     position: relative;
+}
+
+#player-down {
+    margin-top: 15px;
+    width: 48px;
+    height: 48px;
+    background-image: url('../assets/player-down.png');
 }
 
 #gameoverScene p {
