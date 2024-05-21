@@ -1,229 +1,204 @@
-var mainScene, titleScene, howtoScene, scoresScene, gameoverScene, gameSpace, mainFadeout, sepiaLayer
-var $scene = null // reference to current scene displayed on screen
-var $game, $player, $entrance, $exit = null // reference to current instances of each class in the game session
-const KEYS = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false}
+let $game, $player, $entrance, $exit = null // shorthand for current instances of important classes
 
 window.onload = function() {
-    mainScene = document.getElementById('main')
-    titleScene = document.getElementById('titleScene')
-    howtoScene = document.getElementById('instructions')
-    scoresScene = document.getElementById('highscores')
-    gameoverScene = document.getElementById('gameoverScene')
-    gameSpace = document.getElementById('gamespace')
-    mainFadeout = document.querySelector('#main .fadeout')
-    sepiaLayer = document.querySelector('.sepia-layer')
-    setupClickListeners()
-    setupKeyboardListeners()
-    switchScene(titleScene)
+    Scene.main = document.getElementById('main')
+    Scene.title = document.getElementById('titleScene')
+    Scene.howToPlay = document.getElementById('instructions')
+    Scene.highScores = document.getElementById('highscores')
+    Scene.gameOver = document.getElementById('gameoverScene')
+    Input.setupClickListeners()
+    Input.setupKeyboardListeners()
+    Scene.change('title')
 }
 
-function setupClickListeners() {
-    let btnstart = document.querySelectorAll('.btn-start') // start / restart
-    btnstart.forEach(btn => {
-        btn.addEventListener('click', () => {
-        playSound('cursor',0.5)
-        setTimeout(newGame, 300)
+class Scene {
+    static change(newScene) {
+        if (!this.current) this.current = this[newScene]
+        this.current.style.display = 'none'
+        this[newScene].style.display = 'flex'
+        let toPlay
+        let toPause = []
+        switch(newScene) {
+            case 'title': 
+                toPlay = 'title-bgm'
+                toPause = ['main-bgm','gameover-bgm']; break
+            case 'main': 
+                toPlay = 'main-bgm'
+                toPause = ['title-bgm','gameover-bgm']; break
+            case 'howToPlay':
+            case 'highScores':
+                toPlay = 'title-bgm'; break
+            case 'gameOver': 
+                toPlay = 'gameover-bgm'
+                toPause = ['main-bgm']; break
+        }
+        toPause.forEach(bgm => {if (!document.getElementById(bgm).paused) Audio.fadoutBgm(bgm)});
+        if (toPlay && document.getElementById(toPlay).paused) Audio.fadeinBgm(toPlay, 0.2)
+        this.current = this[newScene]
+    }
+    static startGame() {
+        this.change('main')
+        $game = new GameSession() 
+        $game.startLevel(1)
+        $game.interval = setInterval(()=>{$game.update()}, 17)
+    }
+    static endGame() {
+        clearInterval($game.interval)
+        $game.fadeout.style.opacity = 1
+        setTimeout(()=> {
+            $game.removeAll()
+            this.change('gameOver')
+            document.querySelector('#gameoverScene .fadeout').style.opacity = 0
+        },680)
+        document.getElementById('final-score').textContent = $game.score
+        document.getElementById('final-level').textContent = $game.level
+    }
+}
+
+class Input {
+    static setupClickListeners() {
+        let btnstart = document.querySelectorAll('.btn-start') // start / restart
+        btnstart.forEach(btn => {
+            btn.addEventListener('click', () => {
+            Audio.playSound('cursor',0.5)
+            setTimeout(()=>{Scene.startGame()}, 300)
+            })
         })
-    })
-    let btntotitle = document.querySelectorAll('.btn-backtotitle') // back to title
-    btntotitle.forEach(btn => {btn.addEventListener('click', () => {
-        playSound('cursor',0.5)
-        setTimeout(()=>{switchScene(titleScene)}, 300)
+        let btntotitle = document.querySelectorAll('.btn-backtotitle') // back to title
+        btntotitle.forEach(btn => {btn.addEventListener('click', () => {
+            Audio.playSound('cursor',0.5)
+            setTimeout(()=>{Scene.change('title')}, 300)
+            })
         })
-    })
-    document.getElementById('btn-instructions').addEventListener('click', () => { // how to play
-        playSound('cursor',0.5)
-        setTimeout(()=>{switchScene(howtoScene)}, 300)
-    })
-    document.getElementById('btn-highscores').addEventListener('click', () => { // highscores
-        playSound('cursor',0.5)
-        updateHighscores()
-        setTimeout(()=>{switchScene(scoresScene)}, 300)
-    })
-    document.getElementById('btn-submit-score').addEventListener('click', () => { // submit score
-        playSound('cursor',0.5)
-        setTimeout(()=>{document.getElementById('submit-box').style.display = 'block'}, 300)
-    }) 
-    document.getElementById('btn-submit').addEventListener('click', () => { // confirm submit
-        playSound('cursor',0.5)
-        submitScore()
-    })
-    document.getElementById('btn-cancel').addEventListener('click', () => { // cancel submit
-        playSound('cursor',0.5)
+        document.getElementById('btn-instructions').addEventListener('click', () => { // how to play
+            Audio.playSound('cursor',0.5)
+            setTimeout(()=>{Scene.change('howToPlay')}, 300)
+        })
+        document.getElementById('btn-highscores').addEventListener('click', () => { // highscores
+            Audio.playSound('cursor',0.5)
+            Data.updateHighscores()
+            setTimeout(()=>{Scene.change('highScores')}, 300)
+        })
+        document.getElementById('btn-submit-score').addEventListener('click', () => { // submit score
+            Audio.playSound('cursor',0.5)
+            setTimeout(()=>{document.getElementById('submit-box').style.display = 'block'}, 300)
+        }) 
+        document.getElementById('btn-submit').addEventListener('click', () => { // confirm submit
+            Audio.playSound('cursor',0.5)
+            Data.submitScore()
+        })
+        document.getElementById('btn-cancel').addEventListener('click', () => { // cancel submit
+            Audio.playSound('cursor',0.5)
+            document.getElementById('submit-box').style.display = 'none'
+        })
+    }
+    static setupKeyboardListeners() {
+        window.addEventListener("keydown", () => {
+            if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
+            this.keys[event.key] = true
+        })
+        window.addEventListener("keyup", () => {
+            if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
+            this.keys[event.key] = false
+        })
+    }
+    static keys = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false}
+    static isKeyDown(keyName) {
+        return this.keys[keyName]
+    }
+}
+
+class Audio {
+    static playSound(id, volume) {
+        if (volume) document.getElementById(id).volume = volume
+        document.getElementById(id).play()
+    }
+    static fadeinBgm(id, maxVol) {
+        let audio = document.getElementById(id)
+        let increment = 0.05;
+        let interval = 2000 / (maxVol / increment);
+        audio.volume = 0;
+        audio.play();
+        let fadeAudio = setInterval(() => {
+            if (audio.volume < maxVol) {
+                audio.volume = Math.min(audio.volume + increment, maxVol);
+            } else {
+                clearInterval(fadeAudio);
+            }
+        }, interval);
+    }
+    static fadoutBgm(id) {
+        let audio = document.getElementById(id)
+        let increment = 0.05;
+        let interval = 1000 / (audio.volume / increment);
+        let fadeAudio = setInterval(() => {
+            if (audio.volume > 0) {
+                audio.volume = Math.max(audio.volume - increment, 0);
+            } else {
+                audio.pause();
+                audio.currentTime = 0;
+                clearInterval(fadeAudio);
+            }
+        }, interval);
+    }
+}
+
+class Data {
+    static submitScore() {
         document.getElementById('submit-box').style.display = 'none'
-    })
-}
-
-function setupKeyboardListeners() {
-    window.addEventListener("keydown", () => {
-        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
-        KEYS[event.key] = true
-    })
-    window.addEventListener("keyup", () => {
-        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
-        KEYS[event.key] = false
-    })
-}
-
-function switchScene(newScene) {
-    if (!$scene) $scene = newScene
-    $scene.style.display = 'none'
-    newScene.style.display = 'flex'
-    let toPlay
-    let toPause = []
-    switch(newScene) {
-        case titleScene: 
-            toPlay = 'title-bgm'
-            toPause = ['main-bgm','gameover-bgm']; break
-        case mainScene: 
-            toPlay = 'main-bgm'
-            toPause = ['title-bgm','gameover-bgm']; break
-        case howtoScene:
-        case scoresScene:
-            toPlay = 'title-bgm'; break
-        case gameoverScene: 
-            toPlay = 'gameover-bgm'
-            toPause = ['main-bgm']; break
+        localStorage.setItem(Math.random(), JSON.stringify({
+            name: document.getElementById('submit-name').value, 
+            level: document.getElementById('final-level').textContent, 
+            score: document.getElementById('final-score').textContent
+        }));
+        this.updateHighscores()
+        Scene.change('highScores')
     }
-    toPause.forEach(bgm => {if (!document.getElementById(bgm).paused) fadoutBgm(bgm)});
-    if (toPlay && document.getElementById(toPlay).paused) fadeinBgm(toPlay, 0.2)
-    $scene = newScene
-}
-
-function newGame() {
-    switchScene(mainScene)
-    $game = new GameSession()
-    $game.startLevel(1)
-    $game.interval = setInterval(gameTick, 17)
-}
-
-function endGame() {
-    clearInterval($game.interval)
-    mainFadeout.style.opacity = 1
-    setTimeout(()=> {
-        $game.removeAll()
-        switchScene(gameoverScene)
-        document.querySelector('#gameoverScene .fadeout').style.opacity = 0
-    },680)
-    document.getElementById('final-score').textContent = $game.score
-    document.getElementById('final-level').textContent = $game.level
-}
-
-function playSound(id, volume) {
-    if (volume) document.getElementById(id).volume = volume
-    document.getElementById(id).play()
-}
-
-function fadeinBgm(id, maxVol) {
-    let audio = document.getElementById(id)
-    let increment = 0.05;
-    let interval = 2000 / (maxVol / increment);
-    audio.volume = 0;
-    audio.play();
-    let fadeAudio = setInterval(() => {
-        if (audio.volume < maxVol) {
-            audio.volume = Math.min(audio.volume + increment, maxVol);
-        } else {
-            clearInterval(fadeAudio);
+    static updateHighscores() {
+        var scoreList = Object.keys(localStorage)
+        var data = scoreList.map(scoreId => {
+            let parsed = JSON.parse(localStorage.getItem(scoreId))
+            return {name: parsed.name, level: parsed.level, score: parsed.score}
+        })
+        data.sort((a, b) => b.score - a.score);
+        var rowName = [...document.querySelectorAll('.hs-name')]
+        var rowLevel = [...document.querySelectorAll('.hs-level')]
+        var rowScore = [...document.querySelectorAll('.hs-score')]
+    
+        for (let i = 0; i < 10 ; i++) {
+            if (!data[i]) continue
+            rowName[i].textContent = data[i].name
+            rowLevel[i].textContent = data[i].level
+            rowScore[i].textContent = data[i].score
         }
-    }, interval);
-}
-
-function fadoutBgm(id) {
-    let audio = document.getElementById(id)
-    let increment = 0.05;
-    let interval = 1000 / (audio.volume / increment);
-    let fadeAudio = setInterval(() => {
-        if (audio.volume > 0) {
-            audio.volume = Math.max(audio.volume - increment, 0);
-        } else {
-            audio.pause();
-            audio.currentTime = 0;
-            clearInterval(fadeAudio);
-        }
-    }, interval);
-}
-
-function submitScore() {
-    document.getElementById('submit-box').style.display = 'none'
-    localStorage.setItem(Math.random(), JSON.stringify({
-        name: document.getElementById('submit-name').value, 
-        level: document.getElementById('final-level').textContent, 
-        score: document.getElementById('final-score').textContent
-    }));
-    updateHighscores()
-    switchScene(scoresScene)
-}
-
-function updateHighscores() {
-    var scoreList = Object.keys(localStorage)
-    var data = scoreList.map(scoreId => {
-        let parsed = JSON.parse(localStorage.getItem(scoreId))
-        return {name: parsed.name, level: parsed.level, score: parsed.score}
-    })
-    data.sort((a, b) => b.score - a.score);
-    var rowName = [...document.querySelectorAll('.hs-name')]
-    var rowLevel = [...document.querySelectorAll('.hs-level')]
-    var rowScore = [...document.querySelectorAll('.hs-score')]
-
-    for (let i = 0; i < 10 ; i++) {
-        if (!data[i]) continue
-        rowName[i].textContent = data[i].name
-        rowLevel[i].textContent = data[i].level
-        rowScore[i].textContent = data[i].score
     }
-}
-
-function gameTick() {
-    $game.update()
-    for (let enemy of $game.enemies) enemy.update()
-    for (let item of $game.items) item.update()
-    $player.update()
-    $exit.update()
-    $entrance.update()
-}
-
-function reverseDir(direction) {
-    switch(direction) {
-        case 8: return 2
-        case 2: return 8
-        case 6: return 4
-        case 4: return 6
+    static enemies = {
+        'bat': {minLvl: 1, minPower: 1, maxPower: 3, points: 1},
+        'slime': {minLvl: 2, minPower: 3, maxPower: 6, points: 2},
+        'orc': {minLvl: 5, minPower: 6, maxPower: 10, points: 5},
+        'skeleton': {minLvl: 7, minPower: 10, maxPower: 13, points: 10},
+        'ghost': {minLvl: 10, minPower: 13, maxPower: 17, points: 15},
+        'imp': {minLvl: 20, minPower: 17, maxPower: 21, points: 20},
+        'minotaur': {minLvl: 30, minPower: 21, maxPower: 25, points: 25},
     }
-}
-
-function randomize(min, max) {
-    return (Math.floor(Math.random() * (max - min + 1))) + min
-}
-
-function randomChance(percentage) {
-    return Math.random() * 100 < percentage
-}
-
-const enemyData = {
-    'bat': {minLvl: 1, minPower: 1, maxPower: 3, points: 1},
-    'slime': {minLvl: 2, minPower: 3, maxPower: 6, points: 2},
-    'orc': {minLvl: 5, minPower: 6, maxPower: 10, points: 5},
-    'skeleton': {minLvl: 7, minPower: 10, maxPower: 13, points: 10},
-    'ghost': {minLvl: 10, minPower: 13, maxPower: 17, points: 15},
-    'imp': {minLvl: 20, minPower: 17, maxPower: 21, points: 20},
-    'minotaur': {minLvl: 30, minPower: 21, maxPower: 25, points: 25},
-}
-
-const itemData = {
-    'potion-red': {minLvl: 2, chance: 35},
-    'potion-green': {minLvl: 4, chance: 30},
-    'potion-blue': {minLvl: 6, chance: 25},
-    'potion-yellow': {minLvl: 2, chance: 10},
-    'shield': {minLvl: 10, chance: 22},
-    'sword': {minLvl: 10, chance: 20},
-    'bomb': {minLvl: 12, chance: 18},
-    'hourglass': {minLvl: 15, chance: 15},
-    //'shield': {minLvl: 1, chance: 100},'sword': {minLvl: 1, chance: 100},'bomb': {minLvl: 1, chance: 100},'hourglass': {minLvl: 1, chance: 100},
+    static items = {
+        'potion-red': {minLvl: 2, chance: 35},
+        'potion-green': {minLvl: 4, chance: 30},
+        'potion-blue': {minLvl: 6, chance: 25},
+        'potion-yellow': {minLvl: 2, chance: 10},
+        'shield': {minLvl: 10, chance: 22},
+        'sword': {minLvl: 10, chance: 20},
+        'bomb': {minLvl: 12, chance: 18},
+        'hourglass': {minLvl: 15, chance: 15},
+        //'shield': {minLvl: 1, chance: 100},'sword': {minLvl: 1, chance: 100},'bomb': {minLvl: 1, chance: 100},'hourglass': {minLvl: 1, chance: 100},
+    }
 }
 
 class GameSession {
     constructor() {
+        this.floor = document.getElementById('gamespace')
+        this.fadeout = document.querySelector('#main .fadeout')
+        this.sepia = document.querySelector('.sepia-layer')
         this.score = 0
         this.level = 0
         this.decorations = []
@@ -237,9 +212,9 @@ class GameSession {
         this.createLevel(levelNumber)
         $entrance.animFrame = 0
         $entrance.isClosing = true
-        if (levelNumber == 1) playSound('door',0.5)
+        if (levelNumber == 1) Audio.playSound('door',0.5)
         $player.isEntering = true
-        mainFadeout.style.opacity = 0 
+        $game.fadeout.style.opacity = 0 
     }
     createLevel(levelNumber) {
         if (levelNumber == 1) this.initElements()
@@ -263,7 +238,7 @@ class GameSession {
         document.getElementById('hpbar').style.width = `96px`
     }
     scrollMap() {
-        $entrance.direction = reverseDir($exit.direction)
+        $entrance.direction = $entrance.reverseDir($exit.direction)
         $entrance.locate($entrance.getX($exit), $entrance.getY($exit))
         $player.locate($entrance.x+5, $entrance.y)
     }
@@ -286,7 +261,7 @@ class GameSession {
     createDecorations() {
         var decorTypes = ['crack','gravel','gravel2']
         for (let decorType of decorTypes) {
-            let decorCount = randomize(1,5)
+            let decorCount = this.randomize(1,5)
             for (let spawned = 0, failed = 0; spawned < decorCount && failed < 100;) {
                 let x = this.spawnX(48)
                 let y = this.spawnY(48)
@@ -300,9 +275,9 @@ class GameSession {
         }
     }
     createItems(levelNumber) {
-        let itemList = Object.keys(itemData).filter(i => itemData[i].minLvl <= levelNumber)
+        let itemList = Object.keys(Data.items).filter(i => Data.items[i].minLvl <= levelNumber)
         for (let item of itemList) {
-            if (!randomChance(itemData[item].chance)) continue
+            if (!this.randomChance(Data.items[item].chance)) continue
             let x = this.spawnX(48)
             let y = this.spawnY(48)
             if (!this.isAreaFreeOfItems(x, y, 48, 48)) continue
@@ -312,8 +287,8 @@ class GameSession {
     createEnemies(levelNumber) {
         var enemiesCount = 2 + Math.floor(levelNumber / 4) // 1 enemy added every 4 levels (minimum 2)
         for (let spawned = 0, failed = 0; spawned < enemiesCount && failed < 100;) {
-            let enemyList = Object.keys(enemyData).filter(e => enemyData[e].minLvl <= levelNumber)
-            let enemyType = enemyList[randomize(0, enemyList.length-1)]
+            let enemyList = Object.keys(Data.enemies).filter(e => Data.enemies[e].minLvl <= levelNumber)
+            let enemyType = enemyList[this.randomize(0, enemyList.length-1)]
             let x = this.spawnX(48)
             let y = this.spawnY(48)
             if (!this.isAreaFree(x, y, 48, 48, 0)) {
@@ -328,7 +303,7 @@ class GameSession {
     createObstacles() {
         var obstacleTypes = ['pillar-H','pillar-broken-H','pillar-broken','rubble','rubble2','hole']
         for (let obstType of obstacleTypes) {
-            let obstacleCount = randomize(1,3)
+            let obstacleCount = this.randomize(1,3)
             for (let spawned = 0, failed = 0; spawned < obstacleCount && failed < 100;) {
                 let x = this.spawnX(48)
                 let y = this.spawnY(48)
@@ -343,14 +318,14 @@ class GameSession {
         }
     }
     spawnX(w) {
-        var max = gameSpace.clientWidth - w
+        var max = $game.floor.clientWidth - w
         var min = w
-        return randomize(min, max)
+        return this.randomize(min, max)
     }
     spawnY(h) {
-        var max = gameSpace.clientHeight - h
+        var max = $game.floor.clientHeight - h
         var min = h
-        return randomize(min, max)
+        return this.randomize(min, max)
     }
     isAreaFree(x, y, w, h, padding) {
         var objects = this.getAllObjects()
@@ -376,11 +351,22 @@ class GameSession {
         return y < doorPadding.y + doorPadding.height && y + h > doorPadding.y 
             && x < doorPadding.x + doorPadding.width && x + w > doorPadding.x
     }
+    randomize(min, max) {
+        return (Math.floor(Math.random() * (max - min + 1))) + min
+    }
+    randomChance(percentage) {
+        return Math.random() * 100 < percentage
+    }
     update() {
         if (this.timeCount > 0) {
             this.timeCount --
             if (this.timeCount == 0) Item.unfreezeTime()
         }
+        for (let enemy of this.enemies) enemy.update()
+        for (let item of this.items) item.update()
+        $player.update()
+        $exit.update()
+        $entrance.update()
     }
     getAllObjects() {
         var objects = this.enemies.concat(this.obstacles, this.decorations, this.items)
@@ -413,9 +399,6 @@ class GameSession {
         document.getElementById('inv-swords').textContent = $player.swords
         document.getElementById('inv-bombs').textContent = $player.bombs
     }
-    isKeyDown(keyName) {
-        return KEYS[keyName]
-    }
 }
 
 class GameObject {
@@ -427,7 +410,7 @@ class GameObject {
         if (!tag) tag = 'div'
         this.element = document.createElement(tag)
         this.element.style.position = 'absolute'
-        mainScene.appendChild(this.element)
+        Scene.main.appendChild(this.element)
     }
     move(direction) {
         switch(direction) {
@@ -487,9 +470,9 @@ class GameObject {
     wouldReachBorder(direction) {
         switch(direction) {
             case 8: return this.y - this.speed <= 50 
-            case 2: return this.y + this.speed >= gameSpace.clientHeight 
+            case 2: return this.y + this.speed >= $game.floor.clientHeight 
             case 4: return this.x - this.speed <= 50
-            case 6: return this.x + this.speed >= gameSpace.clientWidth 
+            case 6: return this.x + this.speed >= $game.floor.clientWidth 
         }
     }
     removeElement() {
@@ -513,12 +496,20 @@ class GameObject {
         }
         return padding
     }
+    reverseDir(direction) {
+        switch(direction) {
+            case 8: return 2
+            case 2: return 8
+            case 6: return 4
+            case 4: return 6
+        }
+    }
 }
 
 class Player extends GameObject {
     constructor() {
         super($entrance.x + 5, $entrance.y, 48, 48)
-        this.element.style.backgroundImage = "url('./assets/player.png')"
+        this.element.style.backgroundImage = "url('./spritesheets/player.png')"
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
         this.direction = 8
@@ -554,7 +545,7 @@ class Player extends GameObject {
         return true
     }
     setImage(fileName) {
-        this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+        this.element.style.backgroundImage = `url('./spritesheets/${fileName}.png')`
     }
     update() {
         if (this.safeCount > 0) this.safeCount --
@@ -576,8 +567,8 @@ class Player extends GameObject {
         this.updateInput()
     }
     updateInput() {
-        for (let keyName in KEYS) {
-            if ($game.isKeyDown(keyName)) {
+        for (let keyName in Input.keys) {
+            if (Input.isKeyDown(keyName)) {
                 let direction
                 switch(keyName) {
                     case "ArrowUp": direction = 8; break
@@ -608,7 +599,7 @@ class Player extends GameObject {
     }
     updateExitAnimation() {
         this.transitionCount --
-        this.move(reverseDir($exit.direction))
+        this.move(this.reverseDir($exit.direction))
         if (this.transitionCount == 0) {
             this.isExiting = false
             this.transitionCount = 40
@@ -628,19 +619,19 @@ class Player extends GameObject {
         if (this.isDurable) damage /= 2
         this.health -= damage
         $game.updateHealthBar()
-        playSound('hurt'+randomize(1,2))
+        Audio.playSound('hurt'+ $game.randomize(1,2))
         $player.setImage('player-down')
         $player.downCount = 60
         let damageOverlay = document.createElement('img');
-        damageOverlay.src = './assets/damage-overlay.png'
+        damageOverlay.src = './images/damage-overlay.png'
         damageOverlay.classList.add('damage');
         this.element.appendChild(damageOverlay);
         setTimeout(() => {damageOverlay.remove();}, 1000);
-        if (this.health <= 0) endGame()
+        if (this.health <= 0) Scene.endGame()
     }
     collectItem(item) {
         if (item.element.classList.contains('item-collected')) return
-        playSound('collect',0.5)
+        Audio.playSound('collect',0.5)
         switch(item.itemType) {
             case 'shield': this.shields ++; break
             case 'sword': this.swords ++; break
@@ -652,20 +643,20 @@ class Player extends GameObject {
         $game.updateInventory()
     }
     parry() {
-        playSound('shield')
+        Audio.playSound('shield')
         this.shields --
         this.useItem('shield')
         this.safeCount = 60
         $game.updateInventory()
     }
     slash() {
-        playSound('sword')
+        Audio.playSound('sword')
         this.swords --
         this.useItem('sword')
         $game.updateInventory()
     }
     detonate() {
-        playSound('bomb')
+        Audio.playSound('bomb')
         this.bombs --
         this.useItem('bomb')
         var bombArea = {x: this.x - 36, y: this.y - 36, width: 120, height: 120}
@@ -675,7 +666,7 @@ class Player extends GameObject {
     }
     useItem(itemType) {
         let itemUsed = document.createElement('img');
-        itemUsed.src = `./assets/${itemType}.png`
+        itemUsed.src = `./images/${itemType}.png`
         itemUsed.classList.add('item-used');
         this.element.appendChild(itemUsed);
         setTimeout(() => {itemUsed.remove();}, 1000);
@@ -685,18 +676,18 @@ class Player extends GameObject {
 class Enemy extends GameObject {
     constructor(x, y, fileName) {
         super(x, y, 48, 48)
-        this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+        this.element.style.backgroundImage = `url('./spritesheets/${fileName}.png')`
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
         this.element.classList.add('enemy')
-        var data = enemyData[fileName]
-        this.power = randomize(data.minPower, data.maxPower) + Math.floor($game.level / 5) // increase base damage every 5 levels
+        var data = Data.enemies[fileName]
+        this.power = $game.randomize(data.minPower, data.maxPower) + Math.floor($game.level / 5) // increase base damage every 5 levels
         this.points = data.points
         this.speed = 1
-        this.direction = randomize(1, 4) * 2 
+        this.direction = $game.randomize(1, 4) * 2 
         this.stepCount = 10
         this.stepFrame = 0
-        this.dirChangeInterval = randomize(1, 3) * 60 // 1-3 sec
+        this.dirChangeInterval = $game.randomize(1, 3) * 60 // 1-3 sec
         this.dirChangeCount = this.dirChangeInterval
     }
     move(direction) {
@@ -723,7 +714,7 @@ class Enemy extends GameObject {
         return true
     }
     setDirection(direction) {
-        this.direction = direction || randomize(1, 4) * 2
+        this.direction = direction || $game.randomize(1, 4) * 2
         this.dirChangeCount = this.dirChangeInterval
     }
     update() {
@@ -745,7 +736,7 @@ class Enemy extends GameObject {
         if ($player.isEntering) return
         if ($player.shields > 0) {
             $player.parry()
-            this.setDirection(reverseDir(this.direction))
+            this.setDirection(this.reverseDir(this.direction))
             return
         }
         if ($player.swords > 0) {
@@ -761,13 +752,13 @@ class Enemy extends GameObject {
         $player.speed = 12
         $player.move(this.direction)
         $player.speed = $player.isFast ? 2 : 1
-        this.setDirection(reverseDir(this.direction))
+        this.setDirection(this.reverseDir(this.direction))
         this.points = 0
     }
     die() {
         this.isDying = true
         setTimeout(()=>{
-            playSound('enemyhurt')
+            Audio.playSound('enemyhurt')
             this.element.classList.add('dying')
             setTimeout(()=>{this.remove()},1000)
         },500)
@@ -798,9 +789,9 @@ class Enemy extends GameObject {
 
 class Entrance extends GameObject {
     constructor() {
-        super(gameSpace.clientWidth / 2 + 25, gameSpace.clientHeight + 40, 60, 60)
+        super($game.floor.clientWidth / 2 + 25, $game.floor.clientHeight + 40, 60, 60)
         this.direction = 8 // initial entrance on the bottom center
-        this.element.style.backgroundImage = "url('./assets/entrance.png')"
+        this.element.style.backgroundImage = "url('./spritesheets/entrance.png')"
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
         this.isClosing = false
@@ -808,19 +799,19 @@ class Entrance extends GameObject {
         this.animCount = 10
     }
     getX(exit) {
-        var direction = reverseDir(exit.direction)
+        var direction = this.reverseDir(exit.direction)
         switch(direction) {
             case 6: return 0
-            case 4: return mainScene.clientWidth - this.width
+            case 4: return Scene.main.clientWidth - this.width
             case 8:
             case 2: return exit.x
         }
     }
     getY(exit) {
-        var direction = reverseDir(exit.direction)
+        var direction = this.reverseDir(exit.direction)
         switch(direction) {
             case 2: return 0
-            case 8: return mainScene.clientHeight - this.height
+            case 8: return Scene.main.clientHeight - this.height
             case 6: 
             case 4: return exit.y
         }
@@ -861,7 +852,7 @@ class Exit extends GameObject {
         this.direction = this.getDirection(8)
         this.x = this.getX(this.direction)
         this.y = this.getY(this.direction)
-        this.element.style.backgroundImage = "url('./assets/exit.png')"
+        this.element.style.backgroundImage = "url('./spritesheets/exit.png')"
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
         this.isOpening = false
@@ -881,23 +872,23 @@ class Exit extends GameObject {
     getX(direction) {
         switch(direction) {
             case 6: return 0
-            case 4: return mainScene.clientWidth - this.width
+            case 4: return Scene.main.clientWidth - this.width
             case 8:
             case 2: 
-                var max = mainScene.clientWidth - this.width*3.5
+                var max = Scene.main.clientWidth - this.width*3.5
                 var min = this.width*2.5
-                return randomize(min, max)
+                return $game.randomize(min, max)
         }
     }
     getY(direction) {
         switch(direction) {
             case 2: return 0
-            case 8: return mainScene.clientHeight - this.height
+            case 8: return Scene.main.clientHeight - this.height
             case 6:
             case 4: 
-                var max = mainScene.clientHeight - this.height*3.5
+                var max = Scene.main.clientHeight - this.height*3.5
                 var min = this.height*2.5
-                return randomize(min, max)
+                return $game.randomize(min, max)
         }
     }
     update() {
@@ -914,7 +905,7 @@ class Exit extends GameObject {
             case 6: case 4: 
                 if ($player.y < this.y || $player.y + $player.height > this.y + this.height) return false
         }
-        if ($player.direction != reverseDir(this.direction)) return false
+        if ($player.direction != this.reverseDir(this.direction)) return false
         return true
     }
     updateAnimation() {
@@ -944,13 +935,13 @@ class Exit extends GameObject {
     open() {
         if ($game.isPaused) return
         this.isOpening = true
-        playSound('door',0.5)
+        Audio.playSound('door',0.5)
         $player.isExiting = true
         $player.isFast = false // in case player got green potion
         $player.speed = 1 
         $player.isDurable = false // in case player got blue potion
         Item.unfreezeTime()// unfreeze time
-        mainFadeout.style.opacity = 1 
+        $game.fadeout.style.opacity = 1 
         $game.isPaused = true
     }
 }
@@ -960,7 +951,7 @@ class Item extends GameObject {
         super(x, y, 48, 48)
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
-        this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+        this.element.style.backgroundImage = `url('./images/${fileName}.png')`
         this.element.style.zIndex = 800
         this.itemType = fileName
         this.element.classList.add('float')
@@ -987,19 +978,19 @@ class Item extends GameObject {
         switch(this.itemType) {
             case 'potion-red': // heal 10 hp
                 if ($player.health == $player.maxHp) return
-                playSound('heal')
+                Audio.playSound('heal')
                 $player.health += 10
                 if ($player.health > $player.maxHp) $player.health = $player.maxHp
                 $game.updateHealthBar(); break
             case 'potion-green': // double speed
-                playSound('speed')
+                Audio.playSound('speed')
                 $player.isFast = true
                 $player.speed = 2; break
             case 'potion-blue': // halve damage
-                playSound('durable')
+                Audio.playSound('durable')
                 $player.isDurable = true; break
             case 'potion-yellow': // double score
-                playSound('bonus')
+                Audio.playSound('bonus')
                 $game.doubleScore = true; break
             case 'hourglass': // freeze time for 10 seconds
                 this.freezeTime(); break
@@ -1009,16 +1000,16 @@ class Item extends GameObject {
         setTimeout(() => {this.remove()}, 500)
     }
     freezeTime() {
-        playSound('time',0.5)
-        sepiaLayer.style.top = `${this.y}px`
-        sepiaLayer.style.left = `${this.x}px`
-        sepiaLayer.classList.add('freeze-time');
+        Audio.playSound('time',0.5)
+        $game.sepia.style.top = `${this.y}px`
+        $game.sepia.style.left = `${this.x}px`
+        $game.sepia.classList.add('freeze-time');
         for (let item of $game.items) item.element.classList.remove('float')
         $game.timeCount = 430
     }
     static unfreezeTime() {
         $game.timeCount = 0
-        sepiaLayer.classList.remove('freeze-time')
+        $game.sepia.classList.remove('freeze-time')
         for (let item of $game.items) item.element.classList.add('float')
     }
     remove() {
@@ -1033,19 +1024,17 @@ class Obstacle extends GameObject {
         super(x, y, 48, 48)
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
+        this.element.style.backgroundImage = `url('./images/${fileName}.png')`
         if (fileName.includes('-H')) { // 48x96 pixels
-            this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
             this.element.style.backgroundPosition = `0px 48px`
             this.img = document.createElement('div')
-            this.img.style.backgroundImage = `url('./assets/${fileName}.png')`
+            this.img.style.backgroundImage = `url('./images/${fileName}.png')`
             this.img.style.width = '48px'
             this.img.style.height = '48px'
             this.img.style.position = 'absolute'
             this.img.style.top = '-100%'
             this.img.style.zIndex = 900
             this.element.appendChild(this.img)
-        } else { // 48x48 pixels
-            this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
         }
         this.updatePosition()
     }
@@ -1061,7 +1050,7 @@ class Decoration extends GameObject {
         super(x, y, 48, 48)
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
-        this.element.style.backgroundImage = `url('./assets/${fileName}.png')`
+        this.element.style.backgroundImage = `url('./images/${fileName}.png')`
         this.element.style.zIndex = -1
         this.updatePosition()
     }

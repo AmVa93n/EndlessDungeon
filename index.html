@@ -14,13 +14,13 @@
 <body>
     <!-- Title Scene -->
     <div class="scene" id="titleScene">
-        <img class="title-anim" src="./assets/title.png"></img>
+        <img class="title-anim" src="./images/title.png"></img>
         <p>How long can <span>you</span> survive?</p>
         <button class="btn-start">Start Adventure</button>
         <button id="btn-instructions">How to Play?</button>
         <button id="btn-highscores">High Scores</button>
-        <audio id="title-bgm" src="./assets/title-bgm.ogg" loop></audio>
-        <audio id="cursor" src="./assets/Cursor1.ogg"></audio>
+        <audio id="title-bgm" src="./bgm/title-bgm.ogg" loop></audio>
+        <audio id="cursor" src="./sounds/Cursor1.ogg"></audio>
     </div>
 
     <!-- Instructions Scene -->
@@ -32,14 +32,14 @@
       </div>
       <div style="width: 350px; display: flex; justify-content: space-between; align-items: center;">
         <p style="width: 300px;">Reach the golden door in order to advance to the next level</p>
-        <div id="exit" style="background-image: url('./assets/exit.png');"></div>
+        <div id="exit" style="background-image: url('./spritesheets/exit.png');"></div>
       </div>
       <h2>Avoid monsters</h2>
       <div style="display: flex; justify-content: center;">
-        <div class="monster" style="background-image: url('./assets/bat.png');"></div>
-        <div class="monster" style="background-image: url('./assets/slime.png');"></div>
-        <div class="monster" style="background-image: url('./assets/orc.png');"></div>
-        <div class="monster" style="background-image: url('./assets/skeleton.png');"></div>
+        <div class="monster" style="background-image: url('./spritesheets/bat.png');"></div>
+        <div class="monster" style="background-image: url('./spritesheets/slime.png');"></div>
+        <div class="monster" style="background-image: url('./spritesheets/orc.png');"></div>
+        <div class="monster" style="background-image: url('./spritesheets/skeleton.png');"></div>
       </div>
       <div style="width: 440px">
         <p>As you progress, you'll encounter more monsters, and they will deal greater damage.
@@ -50,27 +50,27 @@
       <table id="item-table"> 
         <tbody>
           <tr>
-            <td><div class="item float" style="background-image: url('./assets/potion-red.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/potion-red.png');"></div></td>
             <td class="item-desc">Restores 20% of your maximum health</td>
-            <td><div class="item float" style="background-image: url('./assets/shield.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/shield.png');"></div></td>
             <td class="item-desc">Grants protection from one attack</td>
           </tr>
           <tr>
-            <td><div class="item float" style="background-image: url('./assets/potion-green.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/potion-green.png');"></div></td>
             <td class="item-desc">Doubles your speed for the rest of the level</td>
-            <td><div class="item float" style="background-image: url('./assets/sword.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/sword.png');"></div></td>
             <td class="item-desc">Grants protection from one attack and kills the monster</td>
           </tr>
           <tr>
-            <td><div class="item float" style="background-image: url('./assets/potion-blue.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/potion-blue.png');"></div></td>
             <td class="item-desc">Halves damage dealt by monsters for the rest of the level</td>
-            <td><div class="item float" style="background-image: url('./assets/bomb.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/bomb.png');"></div></td>
             <td class="item-desc">Grants protection from one attack and kills all monsters nearby</td>
           </tr>
           <tr>
-            <td><div class="item float" style="background-image: url('./assets/potion-yellow.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/potion-yellow.png');"></div></td>
             <td class="item-desc">Doubles level score</td>
-            <td><div class="item float" style="background-image: url('./assets/hourglass.png');"></div></td>
+            <td><div class="item float" style="background-image: url('./images/hourglass.png');"></div></td>
             <td class="item-desc">Freezes time, all monsters can't move for 10 seconds</td>
           </tr>
         </tbody>
@@ -109,7 +109,7 @@
         <svg id="border-top">
             <defs>
                 <pattern id="wall-top" patternUnits="userSpaceOnUse" width="48" height="72">
-                  <image href="./assets/wall-texture-top.png" x="0" y="-22" width="48" height="72" />
+                  <image href="./textures/wall-texture-top.png" x="0" y="-22" width="48" height="72" />
                 </pattern>
               </defs>
             <polygon points="0,0 760,0 709,51 50,51" fill="url(#wall-top)"/>
@@ -117,7 +117,7 @@
         <svg id="border-bottom">
             <defs>
                 <pattern id="wall-bottom" patternUnits="userSpaceOnUse" width="48" height="72">
-                  <image href="./assets/wall-texture-bottom.png" x="0" y="0" width="48" height="72" />
+                  <image href="./textures/wall-texture-bottom.png" x="0" y="0" width="48" height="72" />
                 </pattern>
               </defs>
             <polygon points="50,0 709,0 760,50 0,50" fill="url(#wall-bottom)"/>
@@ -128,15 +128,15 @@
         <div class="face" id="hud-face"></div>
         <div id="inventory">
           <div class="inventory-row">
-            <div class="inventory" style="background-image: url('./assets/shield.png');"></div>
+            <div class="inventory" style="background-image: url('./images/shield.png');"></div>
             <span class="inv-num" id="inv-shields">0</span>
           </div>
           <div class="inventory-row">
-            <div class="inventory" style="background-image: url('./assets/sword.png');"></div>
+            <div class="inventory" style="background-image: url('./images/sword.png');"></div>
               <span class="inv-num" id="inv-swords">0</span>
           </div>
           <div class="inventory-row">
-            <div class="inventory" style="background-image: url('./assets/bomb.png');"></div>
+            <div class="inventory" style="background-image: url('./images/bomb.png');"></div>
               <span class="inv-num" id="inv-bombs">0</span>
           </div>
         </div>
@@ -144,25 +144,25 @@
         <div id="hud-score">Score: <span id="score"></span></div>
         <div class="fadeout"></div>
         <div class="sepia-layer"></div>
-        <audio id="main-bgm" src="./assets/main-bgm.ogg" loop></audio>
-        <audio id="hurt1" src="./assets/hurt_01.ogg"></audio>
-        <audio id="hurt2" src="./assets/hurt_04.ogg"></audio>
-        <audio id="enemyhurt" src="./assets/Down4.ogg"></audio>
-        <audio id="door" src="./assets/door.ogg"></audio>
-        <audio id="heal" src="./assets/Heal3.ogg"></audio>
-        <audio id="speed" src="./assets/Run.ogg"></audio>
-        <audio id="durable" src="./assets/Up6.ogg"></audio>
-        <audio id="bonus" src="./assets/Chime2.ogg"></audio>
-        <audio id="collect" src="./assets/Equip2.ogg"></audio>
-        <audio id="shield" src="./assets/Parry.ogg"></audio>
-        <audio id="sword" src="./assets/Sword4.ogg"></audio>
-        <audio id="bomb" src="./assets/Explosion2.ogg"></audio>
-        <audio id="time" src="./assets/Magic3.ogg"></audio>
+        <audio id="main-bgm" src="./bgm/main-bgm.ogg" loop></audio>
+        <audio id="hurt1" src="./sounds/hurt_01.ogg"></audio>
+        <audio id="hurt2" src="./sounds/hurt_04.ogg"></audio>
+        <audio id="enemyhurt" src="./sounds/Down4.ogg"></audio>
+        <audio id="door" src="./sounds/door.ogg"></audio>
+        <audio id="heal" src="./sounds/Heal3.ogg"></audio>
+        <audio id="speed" src="./sounds/Run.ogg"></audio>
+        <audio id="durable" src="./sounds/Up6.ogg"></audio>
+        <audio id="bonus" src="./sounds/Chime2.ogg"></audio>
+        <audio id="collect" src="./sounds/Equip2.ogg"></audio>
+        <audio id="shield" src="./sounds/Parry.ogg"></audio>
+        <audio id="sword" src="./sounds/Sword4.ogg"></audio>
+        <audio id="bomb" src="./sounds/Explosion2.ogg"></audio>
+        <audio id="time" src="./sounds/Magic3.ogg"></audio>
       </div>
 
     <!-- Game Over Scene -->
     <div class="scene" id="gameoverScene">
-        <img class="title-anim" src="./assets/gameover.png"></img>
+        <img class="title-anim" src="./images/gameover.png"></img>
         <p>Level: <span id="final-level" style="color: white;">0</span></p>
         <p>Score: <span id="final-score" style="color: white;">0</span></p>
         <div id="player-down"></div>
@@ -178,7 +178,7 @@
             <button id="btn-cancel">Cancel</button>
           </div>
         </div>
-      <audio id="gameover-bgm" src="./assets/gameover-bgm.ogg" loop></audio>
+      <audio id="gameover-bgm" src="./bgm/gameover-bgm.ogg" loop></audio>
     </div>
 
     <script src="./main.js"></script>

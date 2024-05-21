@@ -38,7 +38,7 @@ button:active {
     border-style: solid;
     border-width: 1px;
     border-color: black;
-    background-image: url('../assets/titlebackground.png');
+    background-image: url('../images/titlebackground.png');
     background-size: 100% 100%;
     background-repeat: no-repeat;
     align-items: center;
@@ -215,7 +215,7 @@ button:active {
 }
 
 #hud-face {
-    background-image: url('../assets/player-face.png');
+    background-image: url('../images/player-face.png');
     background-size: contain;
 }
 
@@ -370,7 +370,7 @@ button:active {
 }
 
 #gamespace {
-    background-image: url('../assets/floor-texture.png');
+    background-image: url('../textures/floor-texture.png');
     width: 659px;
     height: 570px;
     border-width: 1px;
@@ -395,7 +395,7 @@ button:active {
 }
 
 #border-left {
-    background-image: url('../assets/wall-texture-left.png');
+    background-image: url('../textures/wall-texture-left.png');
     background-position: 51px;
     position: absolute;
     top: 0px;
@@ -405,7 +405,7 @@ button:active {
 }
 
 #border-right {
-    background-image: url('../assets/wall-texture-right.png');
+    background-image: url('../textures/wall-texture-right.png');
     position: absolute;
     top: 0px;
     left: 709px;
@@ -422,7 +422,7 @@ button:active {
     margin-top: 15px;
     width: 48px;
     height: 48px;
-    background-image: url('../assets/player-down.png');
+    background-image: url('../spritesheets/player-down.png');
 }
 
 #gameoverScene p {
