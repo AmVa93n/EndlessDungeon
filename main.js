@@ -183,13 +183,13 @@ class Data {
     }
     static items = {
         'potion-red': {minLvl: 2, chance: 35},
-        'potion-green': {minLvl: 4, chance: 30},
-        'potion-blue': {minLvl: 6, chance: 25},
-        'potion-yellow': {minLvl: 2, chance: 10},
-        'shield': {minLvl: 10, chance: 22},
-        'sword': {minLvl: 10, chance: 20},
-        'bomb': {minLvl: 12, chance: 18},
-        'hourglass': {minLvl: 15, chance: 15},
+        'potion-green': {minLvl: 2, chance: 32},
+        'potion-blue': {minLvl: 2, chance: 30},
+        'potion-yellow': {minLvl: 2, chance: 15},
+        'shield': {minLvl: 8, chance: 25},
+        'sword': {minLvl: 8, chance: 22},
+        'bomb': {minLvl: 12, chance: 20},
+        'hourglass': {minLvl: 10, chance: 18},
         //'shield': {minLvl: 1, chance: 100},'sword': {minLvl: 1, chance: 100},'bomb': {minLvl: 1, chance: 100},'hourglass': {minLvl: 1, chance: 100},
     }
 }
@@ -285,7 +285,7 @@ class GameSession {
         }
     }
     createEnemies(levelNumber) {
-        var enemiesCount = 2 + Math.floor(levelNumber / 4) // 1 enemy added every 4 levels (minimum 2)
+        var enemiesCount = 3 + Math.floor(levelNumber / 4) // 1 enemy added every 4 levels (minimum 3)
         for (let spawned = 0, failed = 0; spawned < enemiesCount && failed < 100;) {
             let enemyList = Object.keys(Data.enemies).filter(e => Data.enemies[e].minLvl <= levelNumber)
             let enemyType = enemyList[this.randomize(0, enemyList.length-1)]
@@ -369,11 +369,7 @@ class GameSession {
         $entrance.update()
     }
     getAllObjects() {
-        var objects = this.enemies.concat(this.obstacles, this.decorations, this.items)
-        objects.push($entrance)
-        objects.push($exit)
-        objects.push($player)
-        return objects
+        return this.enemies.concat(this.obstacles, this.decorations, this.items, $entrance, $exit, $player)
     }
     removeAll() {
         for (let obj of this.getAllObjects()) obj.removeElement()
@@ -410,6 +406,8 @@ class GameObject {
         if (!tag) tag = 'div'
         this.element = document.createElement(tag)
         this.element.style.position = 'absolute'
+        this.element.style.width =  `${this.width}px`
+        this.element.style.height = `${this.height}px`
         Scene.main.appendChild(this.element)
     }
     move(direction) {
@@ -510,8 +508,6 @@ class Player extends GameObject {
     constructor() {
         super($entrance.x + 5, $entrance.y, 48, 48)
         this.element.style.backgroundImage = "url('./spritesheets/player.png')"
-        this.element.style.width =  `${this.width}px`
-        this.element.style.height = `${this.height}px`
         this.direction = 8
         this.speed = 1
         this.stepCount = 10
@@ -659,7 +655,7 @@ class Player extends GameObject {
         Audio.playSound('bomb')
         this.bombs --
         this.useItem('bomb')
-        var bombArea = {x: this.x - 36, y: this.y - 36, width: 120, height: 120}
+        var bombArea = {x: this.x - 48, y: this.y - 48, width: this.width + 48*2, height: this.height + 48*2}
         var affectedMonsters = $game.enemies.filter(e => e.isCollided(bombArea))
         for (let e of affectedMonsters) e.die()
         $game.updateInventory()
@@ -677,8 +673,6 @@ class Enemy extends GameObject {
     constructor(x, y, fileName) {
         super(x, y, 48, 48)
         this.element.style.backgroundImage = `url('./spritesheets/${fileName}.png')`
-        this.element.style.width =  `${this.width}px`
-        this.element.style.height = `${this.height}px`
         this.element.classList.add('enemy')
         var data = Data.enemies[fileName]
         this.power = $game.randomize(data.minPower, data.maxPower) + Math.floor($game.level / 5) // increase base damage every 5 levels
@@ -689,6 +683,7 @@ class Enemy extends GameObject {
         this.stepFrame = 0
         this.dirChangeInterval = $game.randomize(1, 3) * 60 // 1-3 sec
         this.dirChangeCount = this.dirChangeInterval
+        this.stuckCount = 0
     }
     move(direction) {
         if ($game.timeCount > 0) return // time frozen
@@ -698,17 +693,22 @@ class Enemy extends GameObject {
         super.move(direction)
     }
     canMove(direction) {
-        var objects = $game.enemies.concat($game.obstacles)
-        var ownIndex = objects.indexOf(this)
-        objects.splice(ownIndex, 1)
-        objects.push($entrance)
-        objects.push($exit)
+        var objects = $game.obstacles.concat($entrance,$exit)
         if (objects.some(obj => this.wouldCollide(direction, obj))) {
             this.setDirection()
             return false
         }
         if (this.wouldReachBorder(direction)) {
             this.setDirection()
+            return false
+        }
+        var enemies = [...$game.enemies]
+        var ownIndex = enemies.indexOf(this)
+        enemies.splice(ownIndex, 1)
+        if (enemies.some(e => this.wouldCollide(direction, e))) {
+            if (this.phaseCount > 0) return true
+            this.setDirection()
+            this.stuckCount ++
             return false
         }
         return true
@@ -719,6 +719,11 @@ class Enemy extends GameObject {
     }
     update() {
         if (this.isDying) return
+        if (this.stuckCount == 100) {
+            this.phaseCount = 60
+            this.stuckCount = 0
+        }
+        if (this.phaseCount > 0) this.phaseCount --
         this.updateDirection()
         this.move(this.direction)
         super.update()
@@ -792,8 +797,6 @@ class Entrance extends GameObject {
         super($game.floor.clientWidth / 2 + 25, $game.floor.clientHeight + 40, 60, 60)
         this.direction = 8 // initial entrance on the bottom center
         this.element.style.backgroundImage = "url('./spritesheets/entrance.png')"
-        this.element.style.width =  `${this.width}px`
-        this.element.style.height = `${this.height}px`
         this.isClosing = false
         this.animFrame = 0
         this.animCount = 10
@@ -853,8 +856,6 @@ class Exit extends GameObject {
         this.x = this.getX(this.direction)
         this.y = this.getY(this.direction)
         this.element.style.backgroundImage = "url('./spritesheets/exit.png')"
-        this.element.style.width =  `${this.width}px`
-        this.element.style.height = `${this.height}px`
         this.isOpening = false
         this.animFrame = 0
         this.animCount = 10
@@ -949,8 +950,6 @@ class Exit extends GameObject {
 class Item extends GameObject {
     constructor(x, y, fileName) {
         super(x, y, 48, 48)
-        this.element.style.width =  `${this.width}px`
-        this.element.style.height = `${this.height}px`
         this.element.style.backgroundImage = `url('./images/${fileName}.png')`
         this.element.style.zIndex = 800
         this.itemType = fileName
@@ -1022,8 +1021,6 @@ class Item extends GameObject {
 class Obstacle extends GameObject {
     constructor(x, y, fileName) {
         super(x, y, 48, 48)
-        this.element.style.width =  `${this.width}px`
-        this.element.style.height = `${this.height}px`
         this.element.style.backgroundImage = `url('./images/${fileName}.png')`
         if (fileName.includes('-H')) { // 48x96 pixels
             this.element.style.backgroundPosition = `0px 48px`
@@ -1048,8 +1045,6 @@ class Obstacle extends GameObject {
 class Decoration extends GameObject {
     constructor(x, y, fileName) {
         super(x, y, 48, 48)
-        this.element.style.width =  `${this.width}px`
-        this.element.style.height = `${this.height}px`
         this.element.style.backgroundImage = `url('./images/${fileName}.png')`
         this.element.style.zIndex = -1
         this.updatePosition()
