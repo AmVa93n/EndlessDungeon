@@ -96,6 +96,12 @@ class Input {
             Audio.playSound('cursor',0.5)
             document.getElementById('submit-box').style.display = 'none'
         })
+        document.getElementById('priority-toggleL').addEventListener('click', () => {
+            $player.togglePriority(-1)
+        })
+        document.getElementById('priority-toggleR').addEventListener('click', () => {
+            $player.togglePriority(1)
+        })
     }
     static setupKeyboardListeners() {
         window.addEventListener("keydown", () => {
@@ -191,16 +197,16 @@ class Data {
         'potion-green': {minLvl: 2, chance: 32},
         'potion-blue': {minLvl: 2, chance: 30},
         'potion-yellow': {minLvl: 2, chance: 15},
-        'shield': {minLvl: 8, chance: 25},
-        'sword': {minLvl: 8, chance: 22},
-        'bomb': {minLvl: 12, chance: 20},
+        //'shield': {minLvl: 8, chance: 25},
+        //'sword': {minLvl: 8, chance: 22},
+        //'bomb': {minLvl: 12, chance: 20},
         'arrow': {minLvl: 2, chance: 30},
         'hourglass': {minLvl: 10, chance: 18},
 
         // --- TESTING ---
-        //'shield': {minLvl: 1, chance: 100},
-        //'sword': {minLvl: 1, chance: 100},
-        //'bomb': {minLvl: 1, chance: 100},
+        'shield': {minLvl: 1, chance: 100},
+        'sword': {minLvl: 1, chance: 100},
+        'bomb': {minLvl: 1, chance: 100},
         //'hourglass': {minLvl: 1, chance: 100},
         //'arrow': {minLvl: 1, chance: 100},
         //'potion-green': {minLvl: 1, chance: 100},
@@ -255,7 +261,7 @@ class GameSession {
         $player = new Player()
         $chest = new Chest()
         document.getElementById('score').textContent = 0
-        document.getElementById('hpbar').style.width = `96px`
+        document.getElementById('hpbar-content').style.width = `100%`
     }
     scrollMap() {
         $entrance.direction = $entrance.reverseDir($exit.direction)
@@ -268,10 +274,15 @@ class GameSession {
         var newExitY = $exit.getY($exit.direction)
         $exit.locate(newExitX, newExitY)
         $exit.animFrame = 0
-        var newChestX = $chest.getX($exit.direction)
-        var newChestY = $chest.getY($exit.direction)
-        $chest.locate(newChestX, newChestY)
-        $chest.animFrame = 0
+        let chestRelocated = false
+        while (!chestRelocated) {
+            let x = $chest.getX($exit.direction)
+            let y = $chest.getY($exit.direction)
+            if (this.isBlockingDoor(x, y, 48, 48, $entrance) || this.isBlockingDoor(x, y, 48, 48, $exit)) continue
+            $chest.locate(x, y)
+            $chest.animFrame = 0
+            chestRelocated = true
+        }
     }
     clearPreviousLevel() {
         for (let obj of this.enemies.concat(this.obstacles, this.decorations, this.items)) obj.removeElement()
@@ -427,10 +438,9 @@ class GameSession {
         document.getElementById('score').textContent = this.score
     }
     updateHealthBar() {
-        var hpbar = document.getElementById('hpbar')
+        var hpbar = document.getElementById('hpbar-content')
         var percentage = Math.floor($player.health / $player.maxHp * 100)
-        var newWidth = Math.floor(96 * percentage / 100)
-        hpbar.style.width = `${newWidth}px`
+        hpbar.style.width = `${percentage}%`
     }
     updateInventory() {
         document.getElementById('inv-shields').textContent = $player.shields
@@ -453,6 +463,28 @@ class GameSession {
         $player.isDurable = false
         this.doubleScore = false
         this.updateBonuses()
+    }
+    updatePriority() {
+        let shield = $player.shields > 0, sword = $player.swords > 0, bomb = $player.bombs > 0
+        switch($player.priority) {
+            case null:     $player.priority = shield ? 'shield' : sword ? 'sword'   : bomb ? 'bomb'   : null; break
+            case 'shield': $player.priority = shield ? 'shield' : sword ? 'sword'   : bomb ? 'bomb'   : null; break
+            case 'sword':  $player.priority = sword ? 'sword'   : shield ? 'shield' : bomb ? 'bomb'   : null; break
+            case 'bomb':   $player.priority = bomb ? 'bomb'     : shield ? 'shield' : sword ? 'sword' : null; break
+        }
+        let hud = document.getElementById('priority-current')
+        if ($player.priority) hud.style.backgroundImage = `url('./images/${$player.priority}.png')`
+        else hud.style.backgroundImage = `none`
+
+        let toggleR = document.getElementById('priority-toggleR')
+        let toggleL = document.getElementById('priority-toggleL')
+        if ($player.getToggleOptions().length < 2) {
+            toggleR.classList.remove('toggle-active')
+            toggleL.classList.remove('toggle-active')
+        } else {
+            toggleR.classList.add('toggle-active')
+            toggleL.classList.add('toggle-active')
+        }
     }
 }
 
@@ -579,6 +611,7 @@ class Player extends GameObject {
         this.swords = 0
         this.bombs = 0
         this.arrows = 0
+        this.priority = null
         this.isExiting = false
         this.isEntering = false
         this.transitionCount = 40
@@ -706,13 +739,14 @@ class Player extends GameObject {
             case 'shield': this.shields ++; break
             case 'sword': this.swords ++; break
             case 'bomb': this.bombs ++; break
-            case 'arrow': this.arrows ++; break
+            case 'arrow': this.arrows +=3; break
             case 'key': this.hasKey = true
         }
         item.element.classList.add('item-collected')
         item.element.style.opacity = 0
         setTimeout(() => {item.remove()}, 500)
         $game.updateInventory()
+        $game.updatePriority()
     }
     collectAmulet() {
         Audio.playSound('collect')
@@ -798,6 +832,23 @@ class Player extends GameObject {
         if (itemType == 'key') $player.hasKey = false
         if (itemType == 'amulet') $player.hasAmulet = false
         $game.updateInventory()
+        $game.updatePriority()
+    }
+    togglePriority(direction) {
+        let options = this.getToggleOptions()
+        if (options.length < 2) return // not enough options to toggle
+        Audio.playSound('cursor',0.5)
+        let currentIndex = options.indexOf(this.priority)
+        let newIndex = (currentIndex + direction + options.length) % options.length
+        this.priority = options[newIndex]
+        $game.updatePriority()
+    }
+    getToggleOptions() {
+        let options = []
+        if (this.shields > 0) options.push ('shield')
+        if (this.swords > 0) options.push ('sword')
+        if (this.bombs > 0) options.push ('bomb')
+        return options
     }
 }
 
@@ -867,19 +918,24 @@ class Enemy extends GameObject {
         if (this.dirChangeCount == 0) this.setDirection()
     }
     attack() {
-        if ($player.shields > 0) {
-            $player.parry()
-            this.setDirection(this.reverseDir(this.direction))
-            return
-        }
-        if ($player.swords > 0) {
-            $player.slash()
-            this.die()
-            return
-        }
-        if ($player.bombs > 0) {
-            $player.detonate()
-            return
+        switch($player.priority) {
+            case 'shield':
+                if ($player.shields > 0) {
+                    $player.parry()
+                    this.setDirection(this.reverseDir(this.direction))
+                    return
+                }; break
+            case 'sword':
+                if ($player.swords > 0) {
+                    $player.slash()
+                    this.die()
+                    return
+                }; break
+            case 'bomb':
+                if ($player.bombs > 0) {
+                    $player.detonate()
+                    return
+                }
         }
         $player.takeDamage(this.power)
         $player.speed = 12
