@@ -24,7 +24,7 @@ Due to the random placement of elements in each level, the player is often prese
 - The `Audio` static class handles playing and pausing sound effects, or fade in/out background music.
 - The `Input` static class handles mouse click events and keyboard input.
 - The `Data` static class handles score submission using local storage and holds the game's database of monsters and items.
-- The `GameSession` class represents an instance of the Main Game scene, and it holds all methods that handle creation of new levels, randomizing values, detecting valid spawn locations and updating the game's objects and HUD elements (health bar, inventory, level and score indicators).   
+- The `GameSession` class represents the Main Game scene, and it holds all methods that handle creation of new levels, randomizing values, detecting valid spawn locations and updating the game's objects and HUD elements (health bar, inventory, level and score indicators).   
 - The `GameObject` class is a superclass for all objects present in the game and contains functionality common to most or all of them: movement, relocation, animation updates and collision checks.
 - The `Player` class represents the player's character and its unique actions, such as collecting and using items.
 - The `Enemy` class represents monsters and their unique actions, such as attacking the player and updates to their movement routines.

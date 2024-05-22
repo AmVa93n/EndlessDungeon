@@ -192,12 +192,7 @@ button:active {
     padding: 0px 15px; /* Increase horizontal padding */
 }
 
-/* Main Scene */
-#main {
-    position: relative;
-    background-image: none;
-}
-
+/* Main Scene (HUD) */
 .face {
     position: absolute;
     top: 3px;
@@ -242,21 +237,63 @@ button:active {
     transition: width 1s
 }
 
-#inventory {
+#hud {
     position: absolute;
-    top: 55px;
-    right: 3px;
-    width: 40px; 
-    height: 96px; 
+    top: 10px;
+    left: 1150px;
+    width: 95px;
+    height: 310px; 
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+#hud > * {
     background-color: rgba(233, 162, 132, 80%);
     border-radius: 10px;
+    text-align: center;
+}
+
+#hud h1 {
+    text-align: center;
+    border-radius: 10px;
+    background-color: white;
+    margin: 3px 3px;
+    padding: 1px;
+}
+
+.bonus {
+    font-size: 12px;
+    margin: 3px 3px;
+    padding: 5px;
+    border-radius: 10px;
+    background-color: rgb(149, 149, 149);
+    color: rgb(82, 82, 82);
+}
+
+.bonus-active-g {
+    background-color: rgb(0, 240, 0);
+    color: black
+}
+
+.bonus-active-b {
+    background-color: blue;
+    color: black
+}
+
+.bonus-active-y {
+    background-color: yellow;
+    color: black
+}
+
+#inventory {
     display: flex;
     flex-direction: column;
-    z-index: 1000;
 }
 
 .inventory-row {
     display: flex; 
+    justify-content: flex-start;
     align-items: center;
 }
 
@@ -264,35 +301,17 @@ button:active {
     width: 32px;
     height: 32px;
     background-size: contain;
-    transform: translate(-10%, 0%);
 }
 
 .inv-num {
-    width: 8px;
+    width: 12px;
     text-align: center;
-    transform: translate(-65%, 0%);
 }
 
-#hud-lvl {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    font-size: 20px;
-    background-color: rgba(233, 162, 132, 80%);
-    border-radius: 10px;
-    padding: 5px;
-    z-index: 1000;
-}
-
-#hud-score {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    font-size: 20px;
-    background-color: rgba(233, 162, 132, 80%);
-    border-radius: 10px;
-    padding: 5px;
-    z-index: 1000;
+/* Main Scene (Game Screen) */
+#main {
+    position: relative;
+    background-image: none;
 }
 
 .damage {

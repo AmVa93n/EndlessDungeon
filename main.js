@@ -1,7 +1,8 @@
-let $game, $player, $entrance, $exit = null // shorthand for current instances of important classes
+let $game, $player, $entrance, $exit, $chest = null // shorthand for current instances of important classes
 
 window.onload = function() {
     Scene.main = document.getElementById('main')
+    Scene.hud = document.getElementById('hud')
     Scene.title = document.getElementById('titleScene')
     Scene.howToPlay = document.getElementById('instructions')
     Scene.highScores = document.getElementById('highscores')
@@ -15,7 +16,9 @@ class Scene {
     static change(newScene) {
         if (!this.current) this.current = this[newScene]
         this.current.style.display = 'none'
+        if (this.current == this.main) this.hud.style.display = 'none'
         this[newScene].style.display = 'flex'
+        if (this[newScene] == this.main) this.hud.style.display = 'flex'
         let toPlay
         let toPause = []
         switch(newScene) {
@@ -26,8 +29,10 @@ class Scene {
                 toPlay = 'main-bgm'
                 toPause = ['title-bgm','gameover-bgm']; break
             case 'howToPlay':
-            case 'highScores':
                 toPlay = 'title-bgm'; break
+            case 'highScores':
+                toPlay = 'title-bgm'
+                toPause = ['gameover-bgm']; break
             case 'gameOver': 
                 toPlay = 'gameover-bgm'
                 toPause = ['main-bgm']; break
@@ -94,15 +99,15 @@ class Input {
     }
     static setupKeyboardListeners() {
         window.addEventListener("keydown", () => {
-            if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
+            if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(event.key)) event.preventDefault()
             this.keys[event.key] = true
         })
         window.addEventListener("keyup", () => {
-            if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key)) event.preventDefault()
+            if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(event.key)) event.preventDefault()
             this.keys[event.key] = false
         })
     }
-    static keys = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false}
+    static keys = {"ArrowUp": false, "ArrowDown": false, "ArrowLeft": false, "ArrowRight": false, " ": false}
     static isKeyDown(keyName) {
         return this.keys[keyName]
     }
@@ -189,8 +194,18 @@ class Data {
         'shield': {minLvl: 8, chance: 25},
         'sword': {minLvl: 8, chance: 22},
         'bomb': {minLvl: 12, chance: 20},
+        'arrow': {minLvl: 2, chance: 30},
         'hourglass': {minLvl: 10, chance: 18},
-        //'shield': {minLvl: 1, chance: 100},'sword': {minLvl: 1, chance: 100},'bomb': {minLvl: 1, chance: 100},'hourglass': {minLvl: 1, chance: 100},
+
+        // --- TESTING ---
+        //'shield': {minLvl: 1, chance: 100},
+        //'sword': {minLvl: 1, chance: 100},
+        //'bomb': {minLvl: 1, chance: 100},
+        //'hourglass': {minLvl: 1, chance: 100},
+        //'arrow': {minLvl: 1, chance: 100},
+        //'potion-green': {minLvl: 1, chance: 100},
+        //'potion-blue': {minLvl: 1, chance: 100},
+        //'potion-yellow': {minLvl: 1, chance: 100},
     }
 }
 
@@ -205,10 +220,14 @@ class GameSession {
         this.obstacles = []
         this.enemies = []
         this.items = []
+        this.shotArrows = []
         this.timeCount = 0
     }
     startLevel(levelNumber) {
-        if (levelNumber > 1) this.updateScore()
+        if (levelNumber > 1) {
+            this.updateScore()
+            this.resetBonuses()
+        }
         this.createLevel(levelNumber)
         $entrance.animFrame = 0
         $entrance.isClosing = true
@@ -234,6 +253,7 @@ class GameSession {
         $entrance = new Entrance()
         $exit = new Exit()
         $player = new Player()
+        $chest = new Chest()
         document.getElementById('score').textContent = 0
         document.getElementById('hpbar').style.width = `96px`
     }
@@ -248,6 +268,10 @@ class GameSession {
         var newExitY = $exit.getY($exit.direction)
         $exit.locate(newExitX, newExitY)
         $exit.animFrame = 0
+        var newChestX = $chest.getX($exit.direction)
+        var newChestY = $chest.getY($exit.direction)
+        $chest.locate(newChestX, newChestY)
+        $chest.animFrame = 0
     }
     clearPreviousLevel() {
         for (let obj of this.enemies.concat(this.obstacles, this.decorations, this.items)) obj.removeElement()
@@ -275,6 +299,14 @@ class GameSession {
         }
     }
     createItems(levelNumber) {
+        let keySpawned = false
+        while (!keySpawned) {
+            let keyX = this.spawnX(48)
+            let keyY = this.spawnY(48)
+            if (!this.isAreaFreeOfItems(keyX, keyY, 48, 48)) continue
+            this.items.push(new Item(this.spawnX(48), this.spawnY(48), 'key'))
+            keySpawned = true
+        }
         let itemList = Object.keys(Data.items).filter(i => Data.items[i].minLvl <= levelNumber)
         for (let item of itemList) {
             if (!this.randomChance(Data.items[item].chance)) continue
@@ -285,7 +317,7 @@ class GameSession {
         }
     }
     createEnemies(levelNumber) {
-        var enemiesCount = 3 + Math.floor(levelNumber / 4) // 1 enemy added every 4 levels (minimum 3)
+        var enemiesCount = 2 + Math.floor(levelNumber / 4) // 1 enemy added every 4 levels (minimum 2)
         for (let spawned = 0, failed = 0; spawned < enemiesCount && failed < 100;) {
             let enemyList = Object.keys(Data.enemies).filter(e => Data.enemies[e].minLvl <= levelNumber)
             let enemyType = enemyList[this.randomize(0, enemyList.length-1)]
@@ -339,7 +371,8 @@ class GameSession {
         })
     }
     isAreaFreeOfItems(x, y, w, h) {
-        return !this.items.some(obj => {
+        var itemsAndChest = this.items.concat($chest)
+        return !itemsAndChest.some(obj => {
             return y < obj.y + obj.height 
                 && y + h > obj.y 
                 && x < obj.x + obj.width 
@@ -357,6 +390,16 @@ class GameSession {
     randomChance(percentage) {
         return Math.random() * 100 < percentage
     }
+    getFloorThird(direction) {
+        let x, y, w, h
+        switch(direction) {
+            case 8: x = 50, y = 50, w = $game.floor.clientWidth, h = $game.floor.clientHeight / 3; break
+            case 2: x = 50, y = $game.floor.clientHeight * 2 / 3, w = $game.floor.clientWidth, h = $game.floor.clientHeight / 3; break
+            case 4: x = 50, y = 50, w = $game.floor.clientWidth / 3, h = $game.floor.clientHeight; break
+            case 6: x = $game.floor.clientWidth * 2 / 3, y = 50, w = $game.floor.clientWidth / 3, h = $game.floor.clientHeight
+        }
+        return {x: x, y: y, width: w, height: h}
+    }
     update() {
         if (this.timeCount > 0) {
             this.timeCount --
@@ -364,12 +407,14 @@ class GameSession {
         }
         for (let enemy of this.enemies) enemy.update()
         for (let item of this.items) item.update()
+        for (let arrow of this.shotArrows) arrow.update()
         $player.update()
         $exit.update()
         $entrance.update()
+        $chest.update()
     }
     getAllObjects() {
-        return this.enemies.concat(this.obstacles, this.decorations, this.items, $entrance, $exit, $player)
+        return this.enemies.concat(this.obstacles, this.decorations, this.items, $entrance, $exit, $player, $chest)
     }
     removeAll() {
         for (let obj of this.getAllObjects()) obj.removeElement()
@@ -377,10 +422,7 @@ class GameSession {
     updateScore() {
         var levelScore = 0
         for (let enemy of this.enemies) levelScore += enemy.points
-        if (this.doubleScore) {
-            levelScore *= 2
-            this.doubleScore = false
-        }
+        if (this.doubleScore) levelScore *= 2
         this.score += levelScore
         document.getElementById('score').textContent = this.score
     }
@@ -394,6 +436,23 @@ class GameSession {
         document.getElementById('inv-shields').textContent = $player.shields
         document.getElementById('inv-swords').textContent = $player.swords
         document.getElementById('inv-bombs').textContent = $player.bombs
+        document.getElementById('inv-arrows').textContent = $player.arrows
+        document.getElementById('inv-key').textContent = $player.hasKey ? 1 : 0
+        document.getElementById('inv-amulet').textContent = $player.hasAmulet ? 1 : 0
+    }
+    updateBonuses() {
+        if ($player.isFast) document.getElementById('bonus-speed').classList.add('bonus-active-g')
+        else document.getElementById('bonus-speed').classList.remove('bonus-active-g')
+        if ($player.isDurable) document.getElementById('bonus-damage').classList.add('bonus-active-b')
+        else document.getElementById('bonus-damage').classList.remove('bonus-active-b')
+        if (this.doubleScore) document.getElementById('bonus-score').classList.add('bonus-active-y')
+        else document.getElementById('bonus-score').classList.remove('bonus-active-y')
+    }
+    resetBonuses() {
+        $player.isFast = false
+        $player.isDurable = false
+        this.doubleScore = false
+        this.updateBonuses()
     }
 }
 
@@ -408,6 +467,8 @@ class GameObject {
         this.element.style.position = 'absolute'
         this.element.style.width =  `${this.width}px`
         this.element.style.height = `${this.height}px`
+        this.element.style.left = `${this.x}px`;
+        this.element.style.top = `${this.y}px`;
         Scene.main.appendChild(this.element)
     }
     move(direction) {
@@ -517,6 +578,7 @@ class Player extends GameObject {
         this.shields = 0
         this.swords = 0
         this.bombs = 0
+        this.arrows = 0
         this.isExiting = false
         this.isEntering = false
         this.transitionCount = 40
@@ -530,6 +592,10 @@ class Player extends GameObject {
     canMove(direction) {
         if (this.isExiting) return true
         if ($game.obstacles.some(obs => this.wouldCollide(direction, obs))) return false
+        if (this.wouldCollide(direction, $chest)) {
+            if (this.isCollided($chest)) return false
+            return true
+        } 
         if (this.isCollided($entrance) && direction != $entrance.direction) return false
         if (this.wouldReachBorder(direction)) {
             if (this.wouldCollide(direction, $exit)) {
@@ -559,12 +625,20 @@ class Player extends GameObject {
             }
             return
         }
-        if (this.isExiting || this.isEntering) return
+        if (this.isExiting || this.isEntering) return // wait for level transition
+        if (this.isAiming) return
+        if ($chest.isOpening) return // wait for chest to open
+        if ($chest.openDelay > 0) return // wait for chest to open
+        if ($exit.openDelay > 0) return // wait for door to open
         this.updateInput()
     }
     updateInput() {
         for (let keyName in Input.keys) {
             if (Input.isKeyDown(keyName)) {
+                if (keyName == " ") {
+                    this.chargeBow()
+                    return
+                }
                 let direction
                 switch(keyName) {
                     case "ArrowUp": direction = 8; break
@@ -632,10 +706,22 @@ class Player extends GameObject {
             case 'shield': this.shields ++; break
             case 'sword': this.swords ++; break
             case 'bomb': this.bombs ++; break
+            case 'arrow': this.arrows ++; break
+            case 'key': this.hasKey = true
         }
         item.element.classList.add('item-collected')
         item.element.style.opacity = 0
         setTimeout(() => {item.remove()}, 500)
+        $game.updateInventory()
+    }
+    collectAmulet() {
+        Audio.playSound('collect')
+        let amulet = document.createElement('img');
+        amulet.src = `./images/amulet.png`
+        amulet.classList.add('item-used');
+        $chest.element.appendChild(amulet);
+        setTimeout(() => {amulet.remove();}, 1000);
+        $player.hasAmulet = true
         $game.updateInventory()
     }
     parry() {
@@ -643,13 +729,11 @@ class Player extends GameObject {
         this.shields --
         this.useItem('shield')
         this.safeCount = 60
-        $game.updateInventory()
     }
     slash() {
         Audio.playSound('sword')
         this.swords --
         this.useItem('sword')
-        $game.updateInventory()
     }
     detonate() {
         Audio.playSound('bomb')
@@ -658,7 +742,52 @@ class Player extends GameObject {
         var bombArea = {x: this.x - 48, y: this.y - 48, width: this.width + 48*2, height: this.height + 48*2}
         var affectedMonsters = $game.enemies.filter(e => e.isCollided(bombArea))
         for (let e of affectedMonsters) e.die()
+    }
+    chargeBow() {
+        if (this.isAiming) return
+        if (this.arrows == 0) return
+        let bow = document.createElement('div')
+        bow.style.backgroundImage = `url('./spritesheets/bow.png')`
+        bow.style.width = '48px'
+        bow.style.height = '48px'
+        bow.style.position = 'absolute'
+        bow.style.zIndex = 899
+        this.element.appendChild(bow)
+        switch(this.direction) {
+            case 2:
+                bow.style.top = '80%'
+                bow.style.backgroundPositionY = '0px'; break
+            case 4:
+                bow.style.right = '80%'
+                bow.style.backgroundPositionY = '144px'; break
+            case 6:
+                bow.style.left = '80%'
+                bow.style.backgroundPositionY = '96px'; break
+            case 8:
+                bow.style.bottom = '80%'
+                bow.style.backgroundPositionY = '48px'
+        }
+        Audio.playSound('bow',0.5)
+        this.isAiming = true
+        setTimeout(()=>{this.shootArrow(bow)},1000)
+    }
+    shootArrow(bow) {
+        bow.style.backgroundPositionX = '48px'
+        Audio.playSound('arrow')
+        let x, y, w, h
+        switch(this.direction) {
+            case 2: x = this.x, y = this.y + this.height, w = 12, h = 48; break
+            case 8: x = this.x, y = this.y - this.height, w = 12, h = 48; break
+            case 4: x = this.x - this.width, y = this.y, w = 48, h = 12; break
+            case 6: x = this.x + this.width, y = this.y, w = 48, h = 12; break
+        }
+        $game.shotArrows.push(new Arrow(x, y, w, h, this.direction))
+        this.arrows --
         $game.updateInventory()
+        setTimeout(()=>{
+            bow.remove()
+            this.isAiming = false
+        },500)
     }
     useItem(itemType) {
         let itemUsed = document.createElement('img');
@@ -666,6 +795,9 @@ class Player extends GameObject {
         itemUsed.classList.add('item-used');
         this.element.appendChild(itemUsed);
         setTimeout(() => {itemUsed.remove();}, 1000);
+        if (itemType == 'key') $player.hasKey = false
+        if (itemType == 'amulet') $player.hasAmulet = false
+        $game.updateInventory()
     }
 }
 
@@ -693,7 +825,7 @@ class Enemy extends GameObject {
         super.move(direction)
     }
     canMove(direction) {
-        var objects = $game.obstacles.concat($entrance,$exit)
+        var objects = $game.obstacles.concat($entrance,$exit,$chest)
         if (objects.some(obj => this.wouldCollide(direction, obj))) {
             this.setDirection()
             return false
@@ -727,7 +859,7 @@ class Enemy extends GameObject {
         this.updateDirection()
         this.move(this.direction)
         super.update()
-        if (this.isCollided($player)) this.attack()
+        if (this.isCollided($player) && this.canAttack()) this.attack()
     }
     updateDirection() {
         if ($game.timeCount > 0) return // time frozen
@@ -735,10 +867,6 @@ class Enemy extends GameObject {
         if (this.dirChangeCount == 0) this.setDirection()
     }
     attack() {
-        if ($player.downCount > 0) return
-        if ($player.safeCount > 0) return
-        if ($player.isExiting) return
-        if ($player.isEntering) return
         if ($player.shields > 0) {
             $player.parry()
             this.setDirection(this.reverseDir(this.direction))
@@ -759,6 +887,12 @@ class Enemy extends GameObject {
         $player.speed = $player.isFast ? 2 : 1
         this.setDirection(this.reverseDir(this.direction))
         this.points = 0
+    }
+    canAttack() {
+        return !$player.downCount && !$player.safeCount
+        && !$player.isExiting && !$player.isEntering // don't interrupt level transition 
+        && !$chest.openDelay && !$exit.openDelay // don't interrupt delay
+        && !$player.isAiming // don't interrupt aiming bow
     }
     die() {
         this.isDying = true
@@ -893,13 +1027,22 @@ class Exit extends GameObject {
         }
     }
     update() {
-        if (this.canOpen()) this.open()
+        if (this.canOpen()) {
+            Audio.playSound('amulet')
+            $player.useItem('amulet')
+            this.openDelay = 60
+        }
+        if (this.openDelay > 0) {
+            this.openDelay --
+            if (this.openDelay == 0) this.open()
+        }
         super.update()
         this.updateAnimation()
     }
     canOpen() {
         if (!$player) return
         if (!this.isCollided($player)) return false
+        if (!$player.hasAmulet) return false
         switch(this.direction) {
             case 8: case 2: 
                 if ($player.x < this.x || $player.x + $player.width > this.x + this.width) return false; break
@@ -938,10 +1081,8 @@ class Exit extends GameObject {
         this.isOpening = true
         Audio.playSound('door',0.5)
         $player.isExiting = true
-        $player.isFast = false // in case player got green potion
-        $player.speed = 1 
-        $player.isDurable = false // in case player got blue potion
-        Item.unfreezeTime()// unfreeze time
+        $player.speed = 1 // in case player has x2 speed
+        Item.unfreezeTime()
         $game.fadeout.style.opacity = 1 
         $game.isPaused = true
     }
@@ -954,14 +1095,13 @@ class Item extends GameObject {
         this.element.style.zIndex = 800
         this.itemType = fileName
         this.element.classList.add('float')
-        this.updatePosition()
     }
     update() {
         if ($player.downCount > 0) return
         if ($player.isExiting) return
         if ($player.isEntering) return
         if (!this.isCollided($player)) return
-        if (['shield','sword','bomb'].includes(this.itemType)) $player.collectItem(this)
+        if (['shield','sword','bomb','key','arrow'].includes(this.itemType)) $player.collectItem(this)
         else this.applyEffect()
     }
     isCollided(obj) {
@@ -984,13 +1124,16 @@ class Item extends GameObject {
             case 'potion-green': // double speed
                 Audio.playSound('speed')
                 $player.isFast = true
-                $player.speed = 2; break
+                $player.speed = 2
+                $game.updateBonuses(); break
             case 'potion-blue': // halve damage
                 Audio.playSound('durable')
-                $player.isDurable = true; break
+                $player.isDurable = true
+                $game.updateBonuses(); break
             case 'potion-yellow': // double score
                 Audio.playSound('bonus')
-                $game.doubleScore = true; break
+                $game.doubleScore = true
+                $game.updateBonuses(); break
             case 'hourglass': // freeze time for 10 seconds
                 this.freezeTime(); break
         }
@@ -1018,22 +1161,137 @@ class Item extends GameObject {
     }
 }
 
+class Chest extends GameObject {
+    constructor() {
+        super(0, 0, 48, 48)
+        this.x = this.getX($exit.direction)
+        this.y = this.getY($exit.direction)
+        this.element.style.backgroundImage = `url('./spritesheets/chest.png')`
+        this.isClosing = false
+        this.animFrame = 0
+        this.animCount = 10
+    }
+    getX(exitDir) {
+        let floorThird = $game.getFloorThird(exitDir)
+        return $game.randomize(floorThird.x, floorThird.x + floorThird.width - this.width)
+    }
+    getY(exitDir) {
+        let floorThird = $game.getFloorThird(exitDir)
+        return $game.randomize(floorThird.y, floorThird.y + floorThird.height - this.height)
+    }
+    update() {
+        if (this.canOpen()) {
+            Audio.playSound('key')
+            $player.useItem('key')
+            this.openDelay = 60
+        }
+        if (this.openDelay > 0) {
+            this.openDelay --
+            if (this.openDelay == 0) this.open()
+        }
+        super.update()
+        this.updateAnimation()
+    }
+    canOpen() {
+        if (!$player) return
+        if (!this.isCollided($player)) return false
+        if (!$player.hasKey) return false
+        if (this.animFrame > 0) return
+        return true
+    }
+    open() {
+        this.isOpening = true
+        Audio.playSound('chest')
+    }
+    updateAnimation() {
+        if (!this.isOpening) return
+        super.updateAnimation()
+        if (this.animFrame == 4) {
+            this.isOpening = false
+            $player.collectAmulet()
+        }
+    }
+    updateImage() {
+        var frame
+        switch(this.animFrame) {
+            case 0: frame = 0; break
+            case 1: frame = 144; break
+            case 2: frame = 96; break
+            case 3: frame = 48; break
+        }
+        this.element.style.backgroundPosition = `0px ${frame}px`
+    }
+}
+
+class Arrow extends GameObject {
+    constructor(x, y, realW, realH, direction) {
+        super(x, y, 48, 48)
+        this.element.style.backgroundImage = `url('./spritesheets/arrow.png')`
+        this.element.style.zIndex = 899
+        this.direction = direction
+        this.realW = realW
+        this.realH = realH
+        this.speed = 5
+    }
+    update() {
+        for (let e of $game.enemies) {
+            if (this.isCollided(e)) {
+                Audio.playSound('arrow-hit')
+                e.die()
+                this.remove()
+                return
+            }
+        }
+        if ($game.obstacles.some(o => o.isHighObstacle && this.isCollided(o)) || this.wouldReachBorder(this.direction)) {
+            Audio.playSound('arrow-block',0.5)
+            this.remove()
+            return
+        }
+        if ($game.timeCount == 0) this.move(this.direction)
+        super.update()
+    }
+    isCollided(obj) {
+        var realX = this.realW == 12 ? this.x + 18 : this.x
+        var realY = this.realH == 12 ? this.y + 18 : this.y
+        return realY < obj.y + obj.height && realY + this.realH > obj.y 
+            && realX < obj.x + obj.width && realX + this.realW > obj.x
+    }
+    updateImage() {
+        var dir
+        switch(this.direction) {
+            case 2: dir = 0; break
+            case 4: dir = 144; break
+            case 6: dir = 96; break
+            case 8: dir = 48; break
+        }
+        this.element.style.backgroundPosition = `0px ${dir}px`
+    }
+    remove() {
+        this.removeElement()
+        var index = $game.shotArrows.indexOf(this)
+        if (index != -1) $game.shotArrows.splice(index, 1)
+    }
+}
+
 class Obstacle extends GameObject {
     constructor(x, y, fileName) {
         super(x, y, 48, 48)
         this.element.style.backgroundImage = `url('./images/${fileName}.png')`
-        if (fileName.includes('-H')) { // 48x96 pixels
+        this.isHighObstacle = fileName.includes('-H')
+        if (this.isHighObstacle) { // 48x96 pixels
             this.element.style.backgroundPosition = `0px 48px`
-            this.img = document.createElement('div')
-            this.img.style.backgroundImage = `url('./images/${fileName}.png')`
-            this.img.style.width = '48px'
-            this.img.style.height = '48px'
-            this.img.style.position = 'absolute'
-            this.img.style.top = '-100%'
-            this.img.style.zIndex = 900
-            this.element.appendChild(this.img)
+            this.createUpperHalf(fileName)
         }
-        this.updatePosition()
+    }
+    createUpperHalf(fileName) {
+        this.upperHalf = document.createElement('div')
+        this.upperHalf.style.backgroundImage = `url('./images/${fileName}.png')`
+        this.upperHalf.style.width = '48px'
+        this.upperHalf.style.height = '48px'
+        this.upperHalf.style.position = 'absolute'
+        this.upperHalf.style.top = '-100%'
+        this.upperHalf.style.zIndex = 900
+        this.element.appendChild(this.upperHalf)
     }
     remove() {
         this.removeElement()
@@ -1047,6 +1305,5 @@ class Decoration extends GameObject {
         super(x, y, 48, 48)
         this.element.style.backgroundImage = `url('./images/${fileName}.png')`
         this.element.style.zIndex = -1
-        this.updatePosition()
     }
 }

@@ -101,7 +101,7 @@
       <button class="btn-backtotitle">Back to Title</button>
     </div>
 
-    <!-- Main Scene -->
+    <!-- Main Scene (Game Screen) -->
     <div class="scene" id="main">
         <div id="gamespace"></div>
         <div id="border-left"></div>
@@ -126,22 +126,6 @@
         <div class="bar" id="hpbar"></div>
         <div class="face" id="hud-bg"></div>
         <div class="face" id="hud-face"></div>
-        <div id="inventory">
-          <div class="inventory-row">
-            <div class="inventory" style="background-image: url('./images/shield.png');"></div>
-            <span class="inv-num" id="inv-shields">0</span>
-          </div>
-          <div class="inventory-row">
-            <div class="inventory" style="background-image: url('./images/sword.png');"></div>
-              <span class="inv-num" id="inv-swords">0</span>
-          </div>
-          <div class="inventory-row">
-            <div class="inventory" style="background-image: url('./images/bomb.png');"></div>
-              <span class="inv-num" id="inv-bombs">0</span>
-          </div>
-        </div>
-        <div id="hud-lvl">Level <span id="lvl"></span></div>
-        <div id="hud-score">Score: <span id="score"></span></div>
         <div class="fadeout"></div>
         <div class="sepia-layer"></div>
         <audio id="main-bgm" src="./bgm/main-bgm.ogg" loop></audio>
@@ -158,6 +142,52 @@
         <audio id="sword" src="./sounds/Sword4.ogg"></audio>
         <audio id="bomb" src="./sounds/Explosion2.ogg"></audio>
         <audio id="time" src="./sounds/Magic3.ogg"></audio>
+        <audio id="chest" src="./sounds/Chest1.ogg"></audio>
+        <audio id="key" src="./sounds/Key.ogg"></audio>
+        <audio id="amulet" src="./sounds/Save1.ogg"></audio>
+        <audio id="bow" src="./sounds/Bow4.ogg"></audio>
+        <audio id="arrow" src="./sounds/Bow1.ogg"></audio>
+        <audio id="arrow-block" src="./sounds/Hammer.ogg"></audio>
+        <audio id="arrow-hit" src="./sounds/Slash8.ogg"></audio>
+      </div>
+
+      <!-- Main Scene (HUD) -->
+      <div id="hud">
+        <div id="hud-lvl"> 
+          <h1>Level</h1>
+          <span id="lvl">0</span>
+        </div>
+        <div>
+          <h1>Bonuses</h1>
+          <p class="bonus" id="bonus-speed">x2 Speed</p>
+          <p class="bonus" id="bonus-damage">x1/2 Damage</p>
+          <p class="bonus" id="bonus-score">x2 Score</p>
+        </div>
+        <div id="inventory">
+          <h1>Inventory</h1>
+          <div class="inventory-row">
+            <div class="inventory" style="background-image: url('./images/shield.png');"></div>
+            <span class="inv-num" id="inv-shields">0</span>
+            <div class="inventory" style="background-image: url('./images/arrow.png');"></div>
+            <span class="inv-num" id="inv-arrows">0</span>
+          </div>
+          <div class="inventory-row">
+            <div class="inventory" style="background-image: url('./images/sword.png');"></div>
+            <span class="inv-num" id="inv-swords">0</span>
+            <div class="inventory" style="background-image: url('./images/key.png');"></div>
+            <span class="inv-num" id="inv-key">0</span>
+          </div>
+          <div class="inventory-row">
+            <div class="inventory" style="background-image: url('./images/bomb.png');"></div>
+            <span class="inv-num" id="inv-bombs">0</span>
+            <div class="inventory" style="background-image: url('./images/amulet.png');"></div>
+            <span class="inv-num" id="inv-amulet">0</span>
+          </div>
+        </div>
+          <div id="hud-score"> 
+          <h1>Score</h1>
+          <span id="score">0</span>
+        </div>
       </div>
 
     <!-- Game Over Scene -->
