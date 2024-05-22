@@ -268,8 +268,15 @@ button:active {
     position: absolute;
     right: 0;
     height: 100%;
-    background-image: linear-gradient(45deg, red, white);
+    background-image: linear-gradient(135deg, red 25%, white 50%, red 75%);
+    background-size: 200% 100%;
     transition: width 1s;
+    animation: shine 3s linear infinite;
+}
+
+@keyframes shine {
+    0% {background-position: 100% 0;}
+    100% {background-position: -100% 0;}
 }
 
 #hud {
@@ -307,17 +314,23 @@ button:active {
 }
 
 .bonus-active-g {
-    background-color: rgb(0, 240, 0);
+    background-image: linear-gradient(135deg, rgb(0, 240, 0) 25%, white 50%, rgb(0, 240, 0) 75%);
+    background-size: 200% 100%;
+    animation: shine 3s linear infinite;
     color: black
 }
 
 .bonus-active-b {
-    background-color: blue;
+    background-image: linear-gradient(135deg, blue 25%, white 50%, blue 75%);
+    background-size: 200% 100%;
+    animation: shine 3s linear infinite;
     color: black
 }
 
 .bonus-active-y {
-    background-color: yellow;
+    background-image: linear-gradient(135deg, yellow 25%, white 50%, yellow 75%);
+    background-size: 200% 100%;
+    animation: shine 3s linear infinite;
     color: black
 }
 
