@@ -33,20 +33,16 @@
       <div style="width: 100%; display: flex; justify-content: space-evenly; align-items: flex-start;">
 
         <div class="howto-section" style="width: 48%; display: flex; flex-direction: column;">
-          
           <p>Move around using the <span style="color: white;">Arrow Keys</span></p>
           <p>Press the <span style="color: white;">Space Bar</span> to use your bow</p>
-          
           <div class="howto-row">
             <p>Open the chest</p>
             <div id="howto-chest" style="background-image: url('./spritesheets/chest.png');"></div>
           </div>
-
           <div class="howto-row">
             <p>in order to get the amulet</p>
             <div class="item float" style="background-image: url('./images/amulet.png');"></div>
           </div>
-          
           <div class="howto-row">
             <p style="width: 70%; margin-right: 10px">Reach the golden door with the amulet in order to advance to the next level</p>
             <div id="exit" style="background-image: url('./spritesheets/exit.png');"></div>
@@ -63,49 +59,60 @@
           </div>
           <div style="width: 100%">
             <p>As you progress, you'll encounter more monsters, and they will deal greater damage.
-              Each monster successfully avoided will score you points according to its strength. 
-              Monsters you took damage from will score no points!</p>
+              Each monster successfully avoided will score you points according to its strength.</p> 
+            <p>Monsters you've killed or taken damage from will score no points.</p>
           </div>
         </div>
 
       </div>
-      <div class="howto-section">
-        <h2>Collect items</h2>
-        <table id="item-table"> 
-          <tbody>
-            <tr>
-              <td><div class="item float" style="background-image: url('./images/key.png');"></div></td>
-              <td class="item-desc">Required to open a chest</td>
-              <td><div class="item float" style="background-image: url('./images/arrow.png');"></div></td>
-              <td class="item-desc">Adds three arrows to your quiver</td>
-            </tr>
-            <tr>
-              <td><div class="item float" style="background-image: url('./images/potion-red.png');"></div></td>
-              <td class="item-desc">Restores 20% of your maximum health</td>
-              <td><div class="item float" style="background-image: url('./images/shield.png');"></div></td>
-              <td class="item-desc">Grants protection from one attack</td>
-            </tr>
-            <tr>
-              <td><div class="item float" style="background-image: url('./images/potion-green.png');"></div></td>
-              <td class="item-desc">Doubles your speed for the rest of the level</td>
-              <td><div class="item float" style="background-image: url('./images/sword.png');"></div></td>
-              <td class="item-desc">Grants protection from one attack and kills the monster</td>
-            </tr>
-            <tr>
-              <td><div class="item float" style="background-image: url('./images/potion-blue.png');"></div></td>
-              <td class="item-desc">Halves damage dealt by monsters for the rest of the level</td>
-              <td><div class="item float" style="background-image: url('./images/bomb.png');"></div></td>
-              <td class="item-desc">Grants protection from one attack and kills all monsters nearby</td>
-            </tr>
-            <tr>
-              <td><div class="item float" style="background-image: url('./images/potion-yellow.png');"></div></td>
-              <td class="item-desc">Doubles level score</td>
-              <td><div class="item float" style="background-image: url('./images/hourglass.png');"></div></td>
-              <td class="item-desc">Freezes time, all monsters can't move for 10 seconds</td>
-            </tr>
-          </tbody>
-        </table>
-     </div>
+
+      <div style="width: 100%; display: flex; justify-content: space-evenly; align-items: flex-start;">
+
+        <div class="howto-section" style="width: 28%; display: flex; flex-direction: column; align-items: center;">
+          <h2>Watch out for traps</h2>
+          <div id="howto-trap" style="background-image: url('./spritesheets/spikes.png');"></div>
+          <p>If you step on a trap while the spikes are out, you'll lose 10% of your health.
+        </div>
+
+        <div class="howto-section">
+          <h2>Collect items</h2>
+          <table id="item-table"> 
+            <tbody>
+              <tr>
+                <td><div class="item float" style="background-image: url('./images/key.png');"></div></td>
+                <td class="item-desc">Required to open a chest</td>
+                <td><div class="item float" style="background-image: url('./images/arrow.png');"></div></td>
+                <td class="item-desc">Adds three arrows to your quiver</td>
+              </tr>
+              <tr>
+                <td><div class="item float" style="background-image: url('./images/potion-red.png');"></div></td>
+                <td class="item-desc">Restores 20% of your maximum health</td>
+                <td><div class="item float" style="background-image: url('./images/shield.png');"></div></td>
+                <td class="item-desc">Protects from one attack</td>
+              </tr>
+              <tr>
+                <td><div class="item float" style="background-image: url('./images/potion-green.png');"></div></td>
+                <td class="item-desc">Doubles your speed for the rest of the level</td>
+                <td><div class="item float" style="background-image: url('./images/sword.png');"></div></td>
+                <td class="item-desc">Protects from one attack and kills the monster</td>
+              </tr>
+              <tr>
+                <td><div class="item float" style="background-image: url('./images/potion-blue.png');"></div></td>
+                <td class="item-desc">Halves damage dealt by monsters for the rest of the level</td>
+                <td><div class="item float" style="background-image: url('./images/bomb.png');"></div></td>
+                <td class="item-desc">Protects from one attack and kills all monsters nearby</td>
+              </tr>
+              <tr>
+                <td><div class="item float" style="background-image: url('./images/potion-yellow.png');"></div></td>
+                <td class="item-desc">Doubles level score</td>
+                <td><div class="item float" style="background-image: url('./images/hourglass.png');"></div></td>
+                <td class="item-desc">Freezes time. All monsters, traps and arrows will pause for 10 seconds</td>
+              </tr>
+            </tbody>
+          </table>
+       </div>
+
+      </div>
       <button class="btn-backtotitle">Back to Title</button>
     </div>
 
@@ -185,6 +192,7 @@
         <audio id="arrow" src="./sounds/Bow1.ogg"></audio>
         <audio id="arrow-block" src="./sounds/Hammer.ogg"></audio>
         <audio id="arrow-hit" src="./sounds/Slash8.ogg"></audio>
+        <audio id="spikes" src="./sounds/Slash9.ogg"></audio>
       </div>
 
       <!-- Main Scene (HUD) -->

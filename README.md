@@ -19,7 +19,7 @@ Due to the random placement of elements in each level, the player is often prese
 ## Additional features
 - Score submission (achieved via local storage)
 - Archery: while not necessary in order to progress through levels, the player has a bow in their disposal which they can use to shoot monsters and clear a path.
-- Option to pause and resume the game session
+- Option to pause and resume the game session.
 
 ## Data structure
 - The `Scene` static class handles transition between the game views (referred to as "scenes").
@@ -35,6 +35,7 @@ Due to the random placement of elements in each level, the player is often prese
 - The `Entrance` class represents the entrance to a level.
 - The `Chest` class represents the chest that contains the amulet in each level. It adds functionality related to generating the next chest's location and triggering the opening sequence.
 - The `Arrow` class represents an arrow shot by the player and handles its movement and collisions.
+- The `Trap` class represents traps that pull out and retract spikes on the floor every few seconds. It handles their state and determines if the conditions are met to deal damage to the player.
 - The `Obstacle` class represents scenery objects that have collision, and characters are unable to go through.
 - The `Decoration` class represents scenery objects that do not have collision and are placed under all other objects.
 
@@ -66,6 +67,7 @@ The game includes 5 distinct views (scenes):
 - Items
 - Archery
 - Toggle prioritized item
+- Traps
 
 ## Links
 

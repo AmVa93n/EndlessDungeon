@@ -226,6 +226,7 @@ class GameSession {
         this.sepia = document.querySelector('.sepia-layer')
         this.score = 0
         this.level = 0
+        this.traps = []
         this.decorations = []
         this.obstacles = []
         this.enemies = []
@@ -252,6 +253,7 @@ class GameSession {
             this.setNextExit()
             this.clearPreviousLevel()
         }
+        this.createTraps()
         this.createDecorations()
         this.createItems(levelNumber)
         this.createEnemies(levelNumber)
@@ -289,13 +291,23 @@ class GameSession {
         }
     }
     clearPreviousLevel() {
-        for (let obj of this.enemies.concat(this.obstacles, this.decorations, this.items)) obj.removeElement()
+        for (let obj of this.enemies.concat(this.obstacles, this.decorations, this.items, this.traps)) obj.removeElement()
         this.decorations = []
         this.obstacles = []
         this.enemies = []
         this.items = []
+        this.traps = []
         let elements = document.querySelectorAll('.enemy'); // failsafe in case some elements remained
         elements.forEach(e => e.remove()); 
+    }
+    createTraps() {
+        let trapCount = this.randomize(2,3)
+        while (this.traps.length < trapCount) {
+            let x = this.spawnX(48)
+            let y = this.spawnY(48)
+            if (!this.isAreaFree(x, y, 48, 48, 0)) continue
+            this.traps.push(new Trap(x, y))
+        }
     }
     createDecorations() {
         var decorTypes = ['crack','gravel','gravel2']
@@ -366,23 +378,23 @@ class GameSession {
     }
     spawnX(w) {
         var max = $game.floor.clientWidth - w
-        var min = w
+        var min = 50
         return this.randomize(min, max)
     }
     spawnY(h) {
         var max = $game.floor.clientHeight - h
-        var min = h
+        var min = 50
         return this.randomize(min, max)
     }
-    isAreaFree(x, y, w, h, padding) {
+    isAreaFree(x, y, w, h, spacing) {
         var objects = this.getAllObjects()
         if (this.isBlockingDoor(x, y, w, h, $entrance) || this.isBlockingDoor(x, y, w, h, $exit)) return false
         return !objects.some(obj => {
-            let spacing = obj instanceof Decoration || obj instanceof Item ? 0 : padding
-            return y - spacing < obj.y + obj.height 
-                && y + h + spacing > obj.y 
-                && x - spacing < obj.x + obj.width 
-                && x + w + spacing > obj.x
+            let space = obj.requiresSpacing() ? spacing : 0
+            return y - space < obj.y + obj.height 
+                && y + h + space > obj.y 
+                && x - space < obj.x + obj.width 
+                && x + w + space > obj.x
         })
     }
     isAreaFreeOfItems(x, y, w, h) {
@@ -423,6 +435,7 @@ class GameSession {
         }
         for (let enemy of this.enemies) enemy.update()
         for (let item of this.items) item.update()
+        for (let trap of this.traps) trap.update()
         for (let arrow of this.shotArrows) arrow.update()
         $player.update()
         $exit.update()
@@ -430,7 +443,7 @@ class GameSession {
         $chest.update()
     }
     getAllObjects() {
-        return this.enemies.concat(this.obstacles, this.decorations, this.items, $entrance, $exit, $player, $chest)
+        return this.enemies.concat(this.obstacles, this.decorations, this.items, this.traps, $entrance, $exit, $player, $chest)
     }
     removeAll() {
         for (let obj of this.getAllObjects()) obj.removeElement()
@@ -562,6 +575,10 @@ class GameObject {
             && this.x < obj.x + obj.width && this.x + this.width > obj.x
     }
     wouldCollide(direction, obj) {
+        if (this.isFlying) { // allow flying monsters to skip low obstacles and traps
+            if (obj instanceof Obstacle && !obj.isHighObstacle) return false
+            if (obj instanceof Trap) return false
+        } 
         var step = direction == 8 || direction == 4 ? -1 : 1
         var collision = this.y + step < obj.y + obj.height &&
                         this.y + this.height + step > obj.y &&
@@ -611,6 +628,9 @@ class GameObject {
             case 6: return 4
             case 4: return 6
         }
+    }
+    requiresSpacing() {
+        return ![Decoration, Item, Trap].some(cls => this instanceof cls)
     }
 }
 
@@ -823,6 +843,11 @@ class Player extends GameObject {
         setTimeout(()=>{this.shootArrow(bow)},1000)
     }
     shootArrow(bow) {
+        if ($game.isPaused) { // abort if game was paused during bow charge
+            bow.remove()
+            this.isAiming = false
+            return
+        }
         bow.style.backgroundPositionX = '48px'
         Audio.playSound('arrow')
         let x, y, w, h
@@ -884,6 +909,10 @@ class Enemy extends GameObject {
         this.dirChangeInterval = $game.randomize(1, 3) * 60 // 1-3 sec
         this.dirChangeCount = this.dirChangeInterval
         this.stuckCount = 0
+        if (fileName == 'bat') {
+            this.isFlying = true
+            this.element.style.zIndex = 899
+        }
     }
     move(direction) {
         if ($game.timeCount > 0) return // time frozen
@@ -902,11 +931,11 @@ class Enemy extends GameObject {
             this.setDirection()
             return false
         }
-        var enemies = [...$game.enemies]
-        var ownIndex = enemies.indexOf(this)
-        enemies.splice(ownIndex, 1)
-        if (enemies.some(e => this.wouldCollide(direction, e))) {
-            if (this.phaseCount > 0) return true
+        var objectsPhasable = $game.enemies.concat($game.traps)
+        var ownIndex = objectsPhasable.indexOf(this)
+        objectsPhasable.splice(ownIndex, 1)
+        if (objectsPhasable.some(obj => this.wouldCollide(direction, obj))) {
+            if (this.phaseCount > 0) return true // phase if couldn't move 50 times due to emeny/trap
             this.setDirection()
             this.stuckCount ++
             return false
@@ -919,7 +948,7 @@ class Enemy extends GameObject {
     }
     update() {
         if (this.isDying) return
-        if (this.stuckCount == 100) {
+        if (this.stuckCount == 50) {
             this.phaseCount = 60
             this.stuckCount = 0
         }
@@ -1307,21 +1336,24 @@ class Arrow extends GameObject {
         this.speed = 5
     }
     update() {
+        if (this.stopped) return
+        if ($game.timeCount == 0) this.move(this.direction)
+        super.update()
         for (let e of $game.enemies) {
             if (this.isCollided(e)) {
                 Audio.playSound('arrow-hit')
                 e.die()
-                this.remove()
+                this.stopped = true
+                setTimeout(()=>{this.remove()},500)
                 return
             }
         }
         if ($game.obstacles.some(o => o.isHighObstacle && this.isCollided(o)) || this.wouldReachBorder(this.direction)) {
             Audio.playSound('arrow-block',0.5)
-            this.remove()
+            this.stopped = true
+            setTimeout(()=>{this.remove()},500)
             return
         }
-        if ($game.timeCount == 0) this.move(this.direction)
-        super.update()
     }
     isCollided(obj) {
         var realX = this.realW == 12 ? this.x + 18 : this.x
@@ -1343,6 +1375,51 @@ class Arrow extends GameObject {
         this.removeElement()
         var index = $game.shotArrows.indexOf(this)
         if (index != -1) $game.shotArrows.splice(index, 1)
+    }
+}
+
+class Trap extends GameObject {
+    constructor(x, y) {
+        super(x, y, 48, 48)
+        this.element.style.backgroundImage = `url('./spritesheets/spikes.png')`
+        this.trapCount = $game.randomize(100,300)
+        this.spikesOut = $game.randomChance(50)
+        if (this.spikesOut) this.element.style.backgroundPositionY = '48px'
+        this.element.style.zIndex = -1
+    }
+    update() {
+        this.updateTrapInterval()
+        if (this.canImpale()) $player.takeDamage(5)
+    }
+    updateTrapInterval() {
+        if ($game.timeCount > 0) return // time frozen
+        if (this.trapCount > 0) {
+            this.trapCount --
+            if (this.trapCount == 0) {
+                this.spikesOut = !this.spikesOut
+                Audio.playSound('spikes',0.1)
+                if (this.spikesOut) {
+                    this.element.classList.add('spikes-pullout')
+                    this.element.classList.remove('spikes-retract')
+                } else {
+                    this.element.classList.add('spikes-retract')
+                    this.element.classList.remove('spikes-pullout')
+                }
+                this.trapCount = 300
+            }
+        }
+    }
+    canImpale() {
+        return this.spikesOut && this.isCollided($player) && !$player.downCount && !$player.safeCount 
+        && ['48px','96px'].includes(window.getComputedStyle(this.element).backgroundPositionY) // only impale when spikes are visibly out
+    }
+    isCollided(obj) {
+        var realX = this.x + 10
+        var realY = this.y + 10
+        var realWidth = 28
+        var realHeight = 28
+        return realY < obj.y + obj.height && realY + realHeight > obj.y 
+            && realX < obj.x + obj.width && realX + realWidth > obj.x
     }
 }
 

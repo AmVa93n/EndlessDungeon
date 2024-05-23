@@ -170,6 +170,23 @@ button:active {
     75% {background-position-x: 96px}
 }
 
+#howto-trap {
+    width: 48px;
+    height: 48px;
+    animation: trap infinite 3s steps(1);
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+@keyframes trap {
+    0% {background-position-y: 0px}
+    16% {background-position-y: 144px}
+    32% {background-position-y: 96px}
+    48% {background-position-y: 48px}
+    64% {background-position-y: 96px}
+    80% {background-position-y: 144px}
+}
+
 #item-table {
     margin-top: 15px;
 }
@@ -467,6 +484,30 @@ button:active {
 @keyframes freeze-time {
     0% {transform: scale(1);}
     100% {transform: scale(100);}
+}
+
+.spikes-pullout {
+    animation: spikes-pullout 0.5s steps(1) forwards;
+}
+
+@keyframes spikes-pullout {
+    0% {background-position-y: 0px}
+    25% {background-position-y: 144px}
+    50% {background-position-y: 96px}
+    75% {background-position-y: 48px}
+    100% {background-position-y: 48px}
+}
+
+.spikes-retract {
+    animation: spikes-retract 0.5s steps(1) forwards;
+}
+
+@keyframes spikes-retract {
+    0% {background-position-y: 48px}
+    25% {background-position-y: 96px}
+    50% {background-position-y: 144px}
+    75% {background-position-y: 0px}
+    100% {background-position-y: 0px}
 }
 
 #gamespace {
