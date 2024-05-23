@@ -268,6 +268,9 @@ class GameSession {
         $chest = new Chest()
         document.getElementById('score').textContent = 0
         document.getElementById('hpbar-content').style.width = `100%`
+        this.updateBonuses()
+        this.updateInventory()
+        this.updatePriority()
     }
     scrollMap() {
         $entrance.direction = $entrance.reverseDir($exit.direction)
