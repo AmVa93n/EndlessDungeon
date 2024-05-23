@@ -19,6 +19,7 @@ Due to the random placement of elements in each level, the player is often prese
 ## Additional features
 - Score submission (achieved via local storage)
 - Archery: while not necessary in order to progress through levels, the player has a bow in their disposal which they can use to shoot monsters and clear a path.
+- Option to pause and resume the game session
 
 ## Data structure
 - The `Scene` static class handles transition between the game views (referred to as "scenes").

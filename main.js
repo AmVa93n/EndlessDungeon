@@ -102,6 +102,10 @@ class Input {
         document.getElementById('priority-toggleR').addEventListener('click', () => {
             $player.togglePriority(1)
         })
+        document.getElementById('btn-pause').addEventListener('click', () => { // pause
+            Audio.playSound('cursor',0.5)
+            !$game.isPaused ? $game.pause() : $game.resume()
+        })
     }
     static setupKeyboardListeners() {
         window.addEventListener("keydown", () => {
@@ -315,7 +319,7 @@ class GameSession {
             let keyX = this.spawnX(48)
             let keyY = this.spawnY(48)
             if (!this.isAreaFreeOfItems(keyX, keyY, 48, 48)) continue
-            this.items.push(new Item(this.spawnX(48), this.spawnY(48), 'key'))
+            this.items.push(new Item(keyX, keyY, 'key'))
             keySpawned = true
         }
         let itemList = Object.keys(Data.items).filter(i => Data.items[i].minLvl <= levelNumber)
@@ -412,6 +416,7 @@ class GameSession {
         return {x: x, y: y, width: w, height: h}
     }
     update() {
+        if (this.isPaused) return
         if (this.timeCount > 0) {
             this.timeCount --
             if (this.timeCount == 0) Item.unfreezeTime()
@@ -485,6 +490,18 @@ class GameSession {
             toggleR.classList.add('toggle-active')
             toggleL.classList.add('toggle-active')
         }
+    }
+    pause() {
+        document.getElementById("pause-layer").style.display = 'flex'
+        document.getElementById('main-bgm').pause()
+        this.isPaused = true
+        document.getElementById('btn-pause').innerText = 'Resume'
+    }
+    resume() {
+        document.getElementById("pause-layer").style.display = 'none'
+        document.getElementById('main-bgm').play()
+        this.isPaused = false
+        document.getElementById('btn-pause').innerText = 'Pause'
     }
 }
 
@@ -715,7 +732,7 @@ class Player extends GameObject {
         if (this.transitionCount == 0) {
             this.isEntering = false
             this.transitionCount = 40
-            $game.isPaused = false
+            $game.isInTransition = false
         }
     }
     takeDamage(damage) {
@@ -947,7 +964,7 @@ class Enemy extends GameObject {
     canAttack() {
         return !$player.downCount && !$player.safeCount
         && !$player.isExiting && !$player.isEntering // don't interrupt level transition 
-        && !$chest.openDelay && !$exit.openDelay // don't interrupt delay
+        && !$chest.isOpening && !$chest.openDelay && !$exit.openDelay // don't interrupt delay
         && !$player.isAiming // don't interrupt aiming bow
     }
     die() {
@@ -1133,14 +1150,14 @@ class Exit extends GameObject {
         this.element.style.backgroundPosition = `${frame}px ${dir}px`
     }
     open() {
-        if ($game.isPaused) return
+        if ($game.isInTransition) return
         this.isOpening = true
         Audio.playSound('door',0.5)
         $player.isExiting = true
         $player.speed = 1 // in case player has x2 speed
         Item.unfreezeTime()
         $game.fadeout.style.opacity = 1 
-        $game.isPaused = true
+        $game.isInTransition = true
     }
 }
 

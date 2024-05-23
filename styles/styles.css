@@ -284,7 +284,7 @@ button:active {
     top: 10px;
     left: 1150px;
     width: 95px;
-    height: 385px; 
+    height: 430px; 
     display: none;
     flex-direction: column;
     justify-content: space-between;
@@ -382,6 +382,11 @@ button:active {
 .toggle-active {
     cursor: pointer;
     display: block;
+}
+
+#btn-pause {
+    width: 100%;
+    margin: 0;
 }
 
 /* Main Scene (Game Screen) */
@@ -506,6 +511,22 @@ button:active {
     left: 709px;
     width: 50px;
     height: 100%;
+}
+
+#pause-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+    background-color: rgba(128, 128, 128, 0.5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+#pause-text {
+    text-align: center;
+    font-size: 50px;
 }
 
 /* Game Over Scene */
