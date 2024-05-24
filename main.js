@@ -856,14 +856,15 @@ class Player extends GameObject {
             return
         }
         bow.style.backgroundPositionX = '48px'
-        Audio.playSound('arrow')
         let x, y, w, h
+        if (!this.direction) return // failsafe to solve a weird bug where arrow spawns with undefined direction
         switch(this.direction) {
             case 2: x = this.x, y = this.y + this.height, w = 12, h = 48; break
             case 8: x = this.x, y = this.y - this.height, w = 12, h = 48; break
             case 4: x = this.x - this.width, y = this.y, w = 48, h = 12; break
             case 6: x = this.x + this.width, y = this.y, w = 48, h = 12; break
         }
+        Audio.playSound('arrow')
         $game.shotArrows.push(new Arrow(x, y, w, h, this.direction))
         this.arrows --
         $game.updateInventory()
