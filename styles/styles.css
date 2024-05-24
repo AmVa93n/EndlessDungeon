@@ -510,8 +510,8 @@ button:active {
     100% {background-position-y: 0px}
 }
 
-#gamespace {
-    background-image: url('../textures/floor-texture.png');
+#floor {
+    background-image: url('../textures/floor-texture1.png');
     width: 659px;
     height: 570px;
     border-width: 1px;

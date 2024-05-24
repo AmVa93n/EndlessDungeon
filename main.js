@@ -217,11 +217,13 @@ class Data {
         //'potion-blue': {minLvl: 1, chance: 100},
         //'potion-yellow': {minLvl: 1, chance: 100},
     }
+    static obstacles = ['pillar-H','pillar2-H','pillar3-H','pillar-broken-H','pillar-broken2-H','pillar-broken3-H','pillar-broken4-H',
+    'pillar-broken','rubble','rubble2','hole']
 }
 
 class GameSession {
     constructor() {
-        this.floor = document.getElementById('gamespace')
+        this.floor = document.getElementById('floor')
         this.fadeout = document.querySelector('#main .fadeout')
         this.sepia = document.querySelector('.sepia-layer')
         this.score = 0
@@ -247,6 +249,7 @@ class GameSession {
         $game.fadeout.style.opacity = 0 
     }
     createLevel(levelNumber) {
+        this.floor.style.backgroundImage = `url(./textures/floor-texture${this.randomize(1,10)}.png)`
         if (levelNumber == 1) this.initElements()
         if (levelNumber > 1) {
             this.scrollMap()
@@ -363,9 +366,10 @@ class GameSession {
         }
     }
     createObstacles() {
-        var obstacleTypes = ['pillar-H','pillar-broken-H','pillar-broken','rubble','rubble2','hole']
-        for (let obstType of obstacleTypes) {
-            let obstacleCount = this.randomize(1,3)
+        for (let obstType of Data.obstacles) {
+            let min = obstType.includes('-H') ? 0 : 1
+            let max = obstType.includes('-H') ? 2 : 3
+            let obstacleCount = this.randomize(min,max)
             for (let spawned = 0, failed = 0; spawned < obstacleCount && failed < 100;) {
                 let x = this.spawnX(48)
                 let y = this.spawnY(48)
